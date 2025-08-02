@@ -1,0 +1,287 @@
+name: XFRG Cross-Platform CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  QGEN_BACKEND_PORT: 8111
+  QGEN_FRONTEND_PORT: 3111
+  VITE_BACKEND_URL: http://localhost:8111
+
+jobs:
+  multi-environment-test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            setup_script: scripts/setup-cross-platform.sh
+            shell: bash
+          - os: windows-latest
+            setup_script: scripts\setup-cross-platform.bat
+            shell: cmd
+          - os: macos-latest
+            setup_script: scripts/setup-cross-platform.sh
+            shell: bash
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Setup Node.js 18
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: |
+          frontend/package-lock.json
+          package-lock.json
+    
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          backend/venv
+        key: ${{ matrix.os }}-python-${{ hashFiles('backend/requirements.txt') }}
+        restore-keys: |
+          ${{ matrix.os }}-python-
+    
+    - name: Run environment detection test
+      run: python scripts/environment-manager.py --config
+    
+    - name: Run multi-environment tests
+      run: python scripts/test-multi-environment.py
+    
+    - name: Test backend syntax and imports
+      run: |
+        cd backend
+        python -m py_compile app.py
+        python -c "import sys; sys.path.append('.'); from app import app; print('Backend imports successful')"
+    
+    - name: Install frontend dependencies and test build
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}
+        path: |
+          multi_env_test_results_*.json
+          backend/logs/
+          frontend/dist/
+        retention-days: 7
+
+  docker-test:
+    name: Docker Build and Test
+    runs-on: ubuntu-latest
+    needs: multi-environment-test
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Generate environment configuration
+      run: |
+        python scripts/environment-manager.py --env
+        cat .env.auto
+    
+    - name: Validate Docker Compose configuration
+      run: docker-compose config
+    
+    - name: Build backend container
+      run: |
+        docker-compose build backend
+        echo "✅ Backend container built successfully"
+    
+    - name: Build frontend container  
+      run: |
+        docker-compose build frontend
+        echo "✅ Frontend container built successfully"
+    
+    - name: Test container startup
+      run: |
+        # Start backend in background
+        docker-compose up -d backend
+        
+        # Wait for backend to be ready
+        sleep 15
+        
+        # Test health endpoint
+        timeout 30s bash -c 'until curl -f http://localhost:8111/health; do sleep 2; done'
+        echo "✅ Backend health check passed"
+        
+        # Cleanup
+        docker-compose down
+    
+    - name: Test production build
+      run: |
+        # Build production container
+        docker-compose build app
+        echo "✅ Production container built successfully"
+
+  security-scan:
+    name: Security and Dependency Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install security tools
+      run: |
+        pip install safety pip-audit bandit
+        npm install -g audit-ci
+    
+    - name: Python security scan
+      run: |
+        # Check for known vulnerabilities
+        cd backend
+        pip install -r requirements.txt
+        safety check
+        pip-audit
+        
+        # Static security analysis
+        bandit -r . -f json -o bandit-report.json || true
+    
+    - name: Node.js security scan
+      run: |
+        cd frontend
+        npm ci
+        npm audit --audit-level moderate
+        audit-ci --moderate
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          backend/bandit-report.json
+          frontend/npm-audit.json
+        retention-days: 30
+
+  documentation-check:
+    name: Documentation and Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Check documentation completeness
+      run: |
+        # Check for required documentation files
+        required_docs=(
+          "README.md"
+          "GITHUB_SETUP_GUIDE.md" 
+          "CROSS_PLATFORM_DEPLOYMENT_REPORT.md"
+          "docs/ARCHITECTURE.md"
+          "docs/DEPLOYMENT.md"
+        )
+        
+        for doc in "${required_docs[@]}"; do
+          if [[ -f "$doc" ]]; then
+            echo "✅ $doc exists"
+          else
+            echo "❌ $doc missing"
+            exit 1
+          fi
+        done
+    
+    - name: Validate configuration files
+      run: |
+        # Check JSON files
+        python -m json.tool package.json > /dev/null
+        python -m json.tool frontend/package.json > /dev/null
+        
+        # Check YAML files (if any)
+        if command -v yamllint &> /dev/null; then
+          find . -name "*.yml" -o -name "*.yaml" | xargs yamllint
+        fi
+        
+        echo "✅ All configuration files are valid"
+
+  release-preparation:
+    name: Prepare Release Assets
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [multi-environment-test, docker-test, security-scan]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Generate release information
+      run: |
+        echo "## XFRG Release" > RELEASE_NOTES.md
+        echo "**Date:** $(date -u +%Y-%m-%d)" >> RELEASE_NOTES.md
+        echo "**Commit:** ${{ github.sha }}" >> RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+        echo "### ✅ Tested Platforms" >> RELEASE_NOTES.md
+        echo "- Ubuntu (Linux)" >> RELEASE_NOTES.md
+        echo "- Windows" >> RELEASE_NOTES.md
+        echo "- macOS" >> RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+        echo "### 🐳 Docker Support" >> RELEASE_NOTES.md
+        echo "- Multi-stage container builds" >> RELEASE_NOTES.md
+        echo "- Cross-platform compatibility" >> RELEASE_NOTES.md
+        echo "- Production-ready deployment" >> RELEASE_NOTES.md
+        
+        cat RELEASE_NOTES.md
+    
+    - name: Create deployment package
+      run: |
+        # Create deployment-ready package
+        mkdir -p release-package
+        
+        # Copy essential files
+        cp -r scripts/ release-package/
+        cp docker-compose.yml release-package/
+        cp Dockerfile release-package/
+        cp README.md release-package/
+        cp GITHUB_SETUP_GUIDE.md release-package/
+        cp .env.example release-package/
+        
+        # Create archive
+        tar -czf xfrg-deployment.tar.gz release-package/
+        
+        echo "✅ Deployment package created"
+    
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-assets
+        path: |
+          RELEASE_NOTES.md
+          xfrg-deployment.tar.gz
+        retention-days: 90

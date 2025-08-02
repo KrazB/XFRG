@@ -1,0 +1,74 @@
+# Development version of docker-compose for local development
+version: '3.8'
+
+services:
+  # Backend Development Service
+  backend-dev:
+    build:
+      context: .
+      target: backend-builder
+    container_name: qgen-impfrag-backend-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+      - ./backend/logs:/app/logs
+    environment:
+      - PYTHONPATH=/app/backend
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - FRAGMENTS_OUTPUT_DIR=/app/data/fragments
+      - IFC_INPUT_DIR=/app/data/ifc
+      - LOG_LEVEL=DEBUG
+    command: python src/ifc_processor.py --dev --watch
+    networks:
+      - qgen-dev-network
+
+  # Frontend Development Service
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: qgen-impfrag-frontend-dev
+    ports:
+      - "3111:3111"
+      - "3112:3112"  # HMR port
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - ./data/fragments:/app/public/fragments:ro
+    environment:
+      - NODE_ENV=development
+      - VITE_BACKEND_URL=http://localhost:8000
+      - VITE_FRAGMENTS_PATH=/fragments
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - backend-dev
+    networks:
+      - qgen-dev-network
+
+  # File Watcher Service for automatic IFC processing
+  file-watcher:
+    build:
+      context: .
+      target: backend-builder
+    container_name: qgen-impfrag-watcher
+    volumes:
+      - ./data/ifc:/app/watch/ifc
+      - ./data/fragments:/app/data/fragments
+      - ./backend:/app/backend
+    environment:
+      - PYTHONPATH=/app/backend
+      - WATCH_DIR=/app/watch/ifc
+      - OUTPUT_DIR=/app/data/fragments
+    command: python src/file_watcher.py
+    depends_on:
+      - backend-dev
+    networks:
+      - qgen-dev-network
+
+networks:
+  qgen-dev-network:
+    driver: bridge
