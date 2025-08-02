@@ -1,6 +1,10 @@
 # XFRG - IFC Processing and Fragment Viewer Application
 
-**Repository:** KrazB/XFRG | **Domain:** XQG## 🔒 Security & IP Prote## 🚦 Getting Started
+**Repository:** KrazB/XFRG | **Domain:** XQG4_AXIS | **Tenant:** QGEN | **Project:** IMPFRAG
+
+## 🎯 Project Overview
+
+XFRG is a comprehensive three-stage application designed for IFC file processing, fragments conversion, and 3D visualization. The application provides a complete pipeline from IFC import to containerized deployment, making it easily portable and deployable across different environments.
 
 ### Prerequisites
 - Docker and Docker Compose
