@@ -4,11 +4,10 @@
  * ==================================================
  * 
  * This script converts IFC files to fragment format using ThatOpen Components.
- * It can be used standalone or called from the Python backend.
+ * Based on the official ThatOpen Components IfcImporter documentation.
  * 
  * Usage:
  *   node ifc_converter.js --input input.ifc --output output.frag
- *   node ifc_converter.js --input-dir ./data/ifc --output-dir ./data/fragments
  */
 
 import fs from 'fs';
@@ -21,39 +20,35 @@ const __dirname = path.dirname(__filename);
 
 // Use root node_modules where all packages are actually installed
 const rootNodeModules = path.resolve(__dirname, '../node_modules');
-let nodeModulesPath = rootNodeModules;
 
-console.log(`🔍 Looking for dependencies in: ${nodeModulesPath}`);
+console.log(`🔍 Looking for dependencies in: ${rootNodeModules}`);
 
-// ThatOpen Components imports
-let OBC, FRAGS, WEBIFC;
+// Verify web-ifc WASM files exist
+const webIfcPath = path.join(rootNodeModules, 'web-ifc');
+const wasmFile = path.join(webIfcPath, 'web-ifc-node.wasm');
+console.log(`🔍 Checking for WASM file: ${wasmFile}`);
+console.log(`📁 WASM file exists: ${fs.existsSync(wasmFile)}`);
+
+// ThatOpen Components imports - using the correct API from documentation
+let FRAGS;
 
 try {
-    // Use standard ES module imports
+    // Import only what we need for IFC conversion
     console.log('🔧 Loading ThatOpen Components...');
     
-    const obcModule = await import('@thatopen/components');
-    OBC = obcModule.default || obcModule;
-    console.log('✅ @thatopen/components loaded');
-    
-    const fragsModule = await import('@thatopen/fragments');
-    FRAGS = fragsModule.default || fragsModule;
+    FRAGS = await import('@thatopen/fragments');
     console.log('✅ @thatopen/fragments loaded');
     
-    const webifcModule = await import('web-ifc');
-    WEBIFC = webifcModule.default || webifcModule;
-    console.log('✅ web-ifc loaded');
-    
-    console.log('✅ All ThatOpen Components loaded successfully');
+    console.log('✅ ThatOpen Components loaded successfully');
 } catch (error) {
     console.error('❌ Failed to load ThatOpen Components:', error.message);
-    console.error('   Make sure to run: npm install @thatopen/components @thatopen/fragments web-ifc');
+    console.error('   Make sure to run: npm install @thatopen/fragments web-ifc');
     process.exit(1);
 }
 
 class IfcFragmentsConverter {
     constructor() {
-        console.log('🔧 IFC Fragments Converter initialized (using IfcImporter)');
+        console.log('🔧 IFC Fragments Converter initialized (using IfcImporter API)');
     }
 
     async convertFile(inputPath, outputPath) {
@@ -69,23 +64,27 @@ class IfcFragmentsConverter {
             const ifcData = fs.readFileSync(inputPath);
             console.log(`📖 Read IFC file: ${(ifcData.length / 1024 / 1024).toFixed(2)} MB`);
             
-            // Create IFC importer
+            // Create IFC importer using the correct API from documentation
             const serializer = new FRAGS.IfcImporter();
             
-            // Configure WASM path
+            // Configure WASM path (use local node_modules for Node.js environment)
+            // Ensure proper path formatting for Windows
+            const wasmPath = path.join(rootNodeModules, 'web-ifc') + path.sep;
+            console.log(`🔧 Setting WASM path to: ${wasmPath}`);
+            
             serializer.wasm = {
-                path: nodeModulesPath + '/web-ifc/',
+                path: wasmPath,
                 absolute: true
             };
             
             console.log('🏗️  Converting IFC to fragments...');
             
-            // Convert IFC to fragments using the correct API
+            // Convert IFC to fragments using the correct API from documentation
             const fragmentsData = await serializer.process({
                 bytes: new Uint8Array(ifcData),
-                raw: false, // Compressed output
-                progressCallback: (progress) => {
-                    console.log(`Progress: ${Math.round(progress * 100)}%`);
+                raw: false, // Compressed output for smaller files
+                progressCallback: (progress, data) => {
+                    console.log(`Progress: ${Math.round(progress * 100)}% - ${data?.process || 'processing'}`);
                 }
             });
             
@@ -105,16 +104,12 @@ class IfcFragmentsConverter {
                 success: true,
                 inputSize,
                 outputSize,
-                compressionRatio: parseFloat(compressionRatio),
-                outputPath
+                compressionRatio: parseFloat(compressionRatio)
             };
             
         } catch (error) {
-            console.error(`❌ Conversion failed: ${error.message}`);
-            return {
-                success: false,
-                error: error.message
-            };
+            console.error('❌ Conversion failed:', error.message);
+            throw error;
         }
     }
 

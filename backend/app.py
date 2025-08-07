@@ -22,7 +22,7 @@ CORS(app)
 # Configuration
 FRAGMENTS_DIR = Path("../data/fragments").resolve()
 IFC_DIR = Path("../data/ifc").resolve()
-CONVERTER_SCRIPT = Path("ifc_converter.js").resolve()
+CONVERTER_SCRIPT = Path(__file__).parent / "ifc_converter.js"
 
 # Ensure directories exist
 FRAGMENTS_DIR.mkdir(parents=True, exist_ok=True)
