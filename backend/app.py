@@ -8,17 +8,25 @@ Simple Flask API server to serve converted fragment files to the frontend.
 
 import os
 import json
+import subprocess
+import tempfile
 from pathlib import Path
 from datetime import datetime
 from flask import Flask, jsonify, send_file, request
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 CORS(app)
 
 # Configuration
-FRAGMENTS_DIR = Path("/data/XVUE/XQG4_AXIS/QGEN_IMPFRAG/data/fragments")
-IFC_DIR = Path("/data/XVUE/XQG4_AXIS/QGEN_IMPFRAG/data/ifc")
+FRAGMENTS_DIR = Path("../data/fragments").resolve()
+IFC_DIR = Path("../data/ifc").resolve()
+CONVERTER_SCRIPT = Path("ifc_converter.js").resolve()
+
+# Ensure directories exist
+FRAGMENTS_DIR.mkdir(parents=True, exist_ok=True)
+IFC_DIR.mkdir(parents=True, exist_ok=True)
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -99,6 +107,98 @@ def get_status():
         "conversion_complete": fragment_count > 0,
         "timestamp": datetime.now().isoformat()
     })
+
+@app.route('/api/convert', methods=['POST'])
+def convert_ifc():
+    """Convert uploaded IFC file to fragments in memory"""
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    if not file.filename.lower().endswith('.ifc'):
+        return jsonify({"error": "File must be an IFC file"}), 400
+    
+    try:
+        # Create temporary file for IFC data
+        with tempfile.NamedTemporaryFile(suffix='.ifc', delete=False) as temp_ifc:
+            file.save(temp_ifc.name)
+            temp_ifc_path = temp_ifc.name
+        
+        # Generate output filename (sanitized)
+        base_name = secure_filename(file.filename)
+        base_name = base_name.replace('.ifc', '').replace(' ', '_')
+        output_filename = f"{base_name}.frag"
+        output_path = FRAGMENTS_DIR / output_filename
+        
+        # Run conversion using Node.js converter
+        cmd = [
+            'node', str(CONVERTER_SCRIPT),
+            '--input', temp_ifc_path,
+            '--output', str(output_path)
+        ]
+        
+        print(f"🔄 Converting: {file.filename} -> {output_filename}")
+        print(f"📄 Command: {' '.join(cmd)}")
+        print(f"📁 Working directory: {Path(__file__).parent}")
+        print(f"🔧 Converter script exists: {CONVERTER_SCRIPT.exists()}")
+        print(f"📁 Temp IFC file: {temp_ifc_path}")
+        print(f"📁 Output path: {output_path}")
+        
+        # Check if node is available
+        try:
+            node_check = subprocess.run(['node', '--version'], capture_output=True, text=True)
+            print(f"🔧 Node.js version: {node_check.stdout.strip()}")
+        except Exception as node_error:
+            print(f"❌ Node.js not found: {node_error}")
+        
+        # Try with UTF-8 encoding and error handling
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, 
+                                   cwd=Path(__file__).parent, encoding='utf-8', errors='replace')
+        except Exception as encoding_error:
+            print(f"🔄 Encoding error, trying without capture: {encoding_error}")
+            # Fallback: run without capturing output to see errors directly
+            result = subprocess.run(cmd, cwd=Path(__file__).parent)
+            result.stdout = "No output captured"
+            result.stderr = "No stderr captured"
+        
+        print(f"📤 Return code: {result.returncode}")
+        print(f"📤 STDOUT: {result.stdout}")
+        print(f"📤 STDERR: {result.stderr}")
+        print(f"📁 Output file exists after conversion: {output_path.exists()}")
+        
+        # Clean up temporary file
+        os.unlink(temp_ifc_path)
+        
+        if result.returncode == 0 and output_path.exists():
+            # Get file stats
+            stat = output_path.stat()
+            return jsonify({
+                "success": True,
+                "message": f"Successfully converted {file.filename}",
+                "output_file": output_filename,
+                "size_mb": round(stat.st_size / (1024 * 1024), 2),
+                "conversion_time": "< 1 minute"
+            })
+        else:
+            error_msg = result.stderr if result.stderr else "Conversion failed"
+            print(f"❌ Conversion error: {error_msg}")
+            return jsonify({
+                "success": False,
+                "error": f"Conversion failed: {error_msg}"
+            }), 500
+            
+    except Exception as e:
+        # Clean up temp file if it exists
+        if 'temp_ifc_path' in locals() and os.path.exists(temp_ifc_path):
+            os.unlink(temp_ifc_path)
+        return jsonify({
+            "success": False,
+            "error": f"Server error: {str(e)}"
+        }), 500
 
 if __name__ == '__main__':
     print("🚀 Starting QGEN_IMPFRAG Backend API Server...")

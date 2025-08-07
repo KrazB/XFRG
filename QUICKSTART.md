@@ -1,95 +1,179 @@
-# QGEN_IMPFRAG - Quick Start Guide
+# XFRG - IFC Processing and Fragment Viewer - Quick Start Guide
 
 ## 🚀 Overview
 
-QGEN_IMPFRAG is a three-stage application for IFC file processing and 3D visualization:
+XFRG is a complete IFC file processing and 3D visualization application with a fully functional conversion pipeline:
 
-1. **Backend**: Convert IFC files to optimized fragments format
-2. **Frontend**: Visualize fragments in an interactive 3D viewer  
-3. **Container**: Deploy as a portable, containerized application
+1. **Backend**: Python Flask API + Node.js IFC converter using ThatOpen Components
+2. **Frontend**: TypeScript/Vite 3D viewer with real-time progress tracking
+3. **Converter**: Node.js script with ThatOpen Components IfcImporter for IFC→Fragment conversion
 
 ## ⚡ Quick Start (5 minutes)
 
-### Option 1: Docker (Recommended)
+### Option 1: Development Mode (Recommended)
 ```bash
-cd /data/XVUE/XQG4_AXIS/QGEN_IMPFRAG
+cd D:\XFRG
 
-# Start the application
+# Start Frontend (Terminal 1)
+cd frontend
+npm run dev
+# Runs on http://localhost:3111
+
+# Start Backend (Terminal 2 or VS Code Task)
+cd D:\XFRG
+python backend/app.py
+# Runs on http://localhost:8111
+```
+
+### Option 2: VS Code Tasks
+```bash
+# From VS Code Command Palette (Ctrl+Shift+P):
+Tasks: Run Task → "Start Frontend Dev Server"
+Tasks: Run Task → "Start Backend Server"
+```
+
+### Option 3: Docker (Complete Stack)
+```bash
+cd D:\XFRG
+
+# Build and start all services
 docker-compose up --build
 
-# Access the viewer at http://localhost:80
-```
-
-### Option 2: Development Mode
-```bash
-cd /data/XVUE/XQG4_AXIS/QGEN_IMPFRAG
-
-# Setup environment
-./scripts/setup.sh
-
-# Start development servers
-./scripts/run-dev.sh
-
+# Access at:
 # Frontend: http://localhost:3111
-# Backend:  http://localhost:8000
+# Backend:  http://localhost:8111
 ```
 
-## 📁 Adding IFC Files
+## 📁 IFC Conversion Workflow
 
-1. Place IFC files in: `data/ifc/`
-2. Files are automatically detected and converted
-3. View converted fragments in the 3D viewer
-4. Click objects to see properties
+### 1. Web Interface Upload
+1. Open frontend: http://localhost:3111
+2. Drag & drop IFC files or click "Browse Files"
+3. Watch real-time conversion progress
+4. Auto-load converted fragments in 3D viewer
 
-## 🏗️ Architecture
+### 2. Pre-converted Fragments
+- Load existing fragments from `data/fragments/`
+- Example: `Village_ARCH_Building C_R22-1_detached.frag` (62.6 MB)
+- Instant loading with full 3D navigation
+
+### 3. Command Line Conversion
+```bash
+cd D:\XFRG\backend
+node ifc_converter.js --input "path/to/file.ifc" --output "path/to/output.frag"
+```
+
+## 🏗️ System Architecture
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Stage 1:      │────▶   Stage 2:      │────▶   Stage 3:      │
-│   Backend       │    │   Frontend      │    │ Containerization│
-│   (IFC → Frag)  │    │   (3D Viewer)   │    │   (Docker)      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    XFRG Application                         │
+├─────────────────┬─────────────────┬─────────────────────────┤
+│   Frontend      │    Backend      │    IFC Converter        │
+│   (Port 3111)   │   (Port 8111)   │   (Node.js Process)     │
+│                 │                 │                         │
+│ • TypeScript    │ • Python Flask │ • ThatOpen Components   │
+│ • Vite          │ • File Upload   │ • IfcImporter.process() │
+│ • Three.js      │ • Progress API  │ • 82% Compression       │
+│ • Progress UI   │ • Error Handling│ • WASM (web-ifc)        │
+└─────────────────┴─────────────────┴─────────────────────────┘
 ```
 
 ## 🛠️ Development
 
 ### Project Structure
 ```
-QGEN_IMPFRAG/
-├── backend/           # Python Flask API + conversion
-├── frontend/          # TypeScript + Three.js viewer
-├── data/             # IFC input, fragments output
-├── docker/           # Container configuration
-├── scripts/          # Automation scripts
-└── docs/             # Documentation
+XFRG/
+├── backend/                   # Python Flask API + Node.js converter
+│   ├── app.py                # Flask server (port 8111)
+│   ├── ifc_converter.js      # Node.js converter with ThatOpen Components
+│   ├── package.json          # Node.js dependencies (@thatopen/*)
+│   └── requirements.txt      # Python dependencies (flask, flask-cors)
+├── frontend/                 # TypeScript 3D viewer
+│   ├── src/
+│   │   ├── main.ts          # Main app with IFC upload & progress UI
+│   │   └── utils/           # API helpers and UI managers
+│   ├── package.json         # Frontend dependencies (vite, three.js)
+│   ├── tsconfig.json        # TypeScript configuration
+│   └── vite.config.js       # Vite dev server (port 3111)
+├── data/                    # IFC files and converted fragments
+│   ├── ifc/                # Input IFC files
+│   └── fragments/          # Generated .frag files
+├── .vscode/
+│   └── tasks.json          # VS Code tasks for dev servers
+└── node_modules/           # Root dependencies (ThatOpen Components)
 ```
 
-### Key Technologies
-- **Backend**: Python, Flask, Node.js, ThatOpen Components
-- **Frontend**: TypeScript, Vite, Three.js, ThatOpen Fragments
-- **Container**: Docker, Nginx, Supervisor
+### Key Technologies & Dependencies
+**Backend Stack:**
+- **Python 3.12**: Flask web server
+- **Node.js 18+**: ThatOpen Components converter
+- **@thatopen/components@2.4.11**: BIM processing library
+- **@thatopen/fragments@3.0.7**: Fragment format library  
+- **web-ifc@0.0.68**: WASM IFC parser
 
-## 📋 Commands
+**Frontend Stack:**
+- **TypeScript**: Type-safe development
+- **Vite**: Fast dev server and build tool
+- **Three.js@0.175.0**: 3D graphics engine
+- **ThatOpen UI**: BIM-specific UI components
 
-### Development
+**Conversion Performance:**
+- **Input**: 359 MB IFC file
+- **Output**: 62.6 MB fragment file
+- **Compression**: 82% size reduction
+- **Processing Time**: ~2-3 minutes for large models
+
+## 📋 Available Commands
+
+### Development (VS Code Tasks)
 ```bash
-npm run dev              # Start both backend and frontend
-npm run dev:backend      # Backend only
-npm run dev:frontend     # Frontend only
+# From Command Palette (Ctrl+Shift+P)
+Tasks: Run Task → "Start Frontend Dev Server"
+Tasks: Run Task → "Start Backend Server"  
+Tasks: Run Task → "Install Backend Dependencies"
 ```
 
-### Production
+### Manual Development
 ```bash
-docker-compose up        # Production deployment
-docker-compose --profile production up  # Full stack
+# Frontend development server
+cd frontend && npm run dev
+
+# Backend API server  
+cd D:\XFRG && python backend/app.py
+
+# Manual IFC conversion
+cd backend && node ifc_converter.js --input "file.ifc" --output "file.frag"
 ```
 
-### Utility
+### Docker Production
 ```bash
-./scripts/setup.sh       # Initial setup
-./scripts/build.sh       # Build application
-npm run convert          # Convert IFC files manually
+docker-compose up --build     # Full application stack
+docker-compose up frontend   # Frontend only
+docker-compose up backend    # Backend only
 ```
+
+### Dependency Management
+```bash
+# Install all dependencies
+npm install                   # Root ThatOpen Components packages
+cd backend && npm install    # Node.js converter dependencies  
+cd frontend && npm install   # Frontend UI dependencies
+
+# Python dependencies
+pip install flask flask-cors
+```
+
+## 🔗 API Endpoints
+
+### Backend REST API (localhost:8111)
+- **POST /api/convert**: Upload IFC file for conversion
+- **GET /health**: Health check endpoint
+- **GET /api/status**: Get conversion status
+
+### Frontend Dev Server (localhost:3111)
+- **GET /**: Main application interface
+- **Static assets**: Vite-served frontend files
 
 ## 🔗 Integration
 
@@ -97,34 +181,77 @@ npm run convert          # Convert IFC files manually
 - **UI Patterns**: Inherits from `/data/XVUE/XQG4_AXIS/QGEN_DATAVIS/`
 - **Containerization**: Production-ready Docker setup
 
-## 📊 Performance
+## 📊 Performance & Features
 
-- **Compression**: 90%+ size reduction (IFC → fragments)
-- **Loading**: Sub-second fragment loading
-- **Container**: <30 second startup time
-- **Memory**: <2GB for typical models
+### Conversion Performance
+- **Compression Ratio**: 82%+ size reduction (IFC → fragments)
+- **Large File Support**: Successfully tested with 359+ MB IFC files
+- **Processing Speed**: ~2-3 minutes for complex architectural models
+- **Memory Efficiency**: Optimized for large model processing
 
-## � Port Configuration
+### 3D Viewer Features
+- **Real-time Loading**: Sub-second fragment loading
+- **Interactive Navigation**: Mouse orbit, pan, zoom controls
+- **Object Selection**: Click objects to view properties
+- **Element Filtering**: Filter by IFC categories (walls, slabs, etc.)
+- **Progress Tracking**: Real-time conversion progress bars
 
-| Mode | Frontend URL | Backend URL | Notes |
-|------|-------------|-------------|-------|
-| **Development** | `http://localhost:3111` | `http://localhost:8000` | Hot reload, debugging |
-| **Production** | `http://localhost:80` | `http://localhost:8000` | Complete application |
-| **Docker Dev** | `http://localhost:3111` | `http://localhost:8000` | Containerized development |
+### System Requirements
+- **Memory**: 4GB+ RAM recommended for large IFC files
+- **Storage**: ~40% of original IFC file size for fragments
+- **Browser**: Modern browser with WebGL 2.0 support
+- **Node.js**: Version 18+ for optimal ThatOpen Components performance
 
-## �🆘 Troubleshooting
+## 🔧 Port Configuration
 
-### Common Issues
-1. **Port conflicts**: Change ports in docker-compose.yml
-2. **Permission errors**: Run `chmod +x scripts/*.sh`
-3. **Memory issues**: Increase Docker memory limit
-4. **Fragment converter**: Ensure `/data/XVUE/frag_convert/` is accessible
+| Service | Development URL | Production URL | Purpose |
+|---------|----------------|----------------|---------|
+| **Frontend** | `http://localhost:3111` | `http://localhost:80` | 3D viewer interface |
+| **Backend** | `http://localhost:8111` | `http://localhost:8111` | IFC conversion API |
+| **Vite HMR** | `http://localhost:24678` | N/A | Hot module reload |
+
+## 🆘 Troubleshooting
+
+### Common Issues & Solutions
+
+**1. "Cannot find ThatOpen Components"**
+```bash
+# Solution: Install root dependencies
+cd D:\XFRG
+npm install
+```
+
+**2. "FRAGS.Serializer.export is not a function"**  
+✅ **Fixed**: Updated to use `FRAGS.IfcImporter().process()` API
+
+**3. "WASM file not found"**
+```bash
+# Solution: Verify web-ifc installation
+cd D:\XFRG && dir node_modules\web-ifc
+```
+
+**4. "Port 3111/8111 already in use"**
+```bash
+# Solution: Kill existing processes
+tasklist | findstr node
+taskkill /PID [process_id] /F
+```
+
+**5. Backend connection failed**
+- Ensure backend is running on localhost:8111
+- Check Windows Firewall settings
+- Verify Python Flask server started successfully
 
 ### Health Checks
 ```bash
-curl http://localhost:8000/health    # Backend
-curl http://localhost:3111           # Frontend
-docker-compose ps                    # Container status
+# Test backend API
+curl http://localhost:8111/health
+
+# Test frontend loading  
+curl http://localhost:3111
+
+# Test IFC converter directly
+cd backend && node ifc_converter.js --help
 ```
 
 ## 📚 Documentation

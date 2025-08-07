@@ -133,7 +133,69 @@ class SimpleUI {
     }
     mainHeader.textContent = "IFC File Conversion - Load Test";
 
-    // Create file drop zone overlay
+    // Create IFC conversion zone (NEW)
+    const ifcZone = document.createElement("div");
+    ifcZone.id = "ifc-zone";
+    ifcZone.innerHTML = `
+      <div class="ifc-content">
+        <h3>📁 IFC Converter</h3>
+        <p>Convert IFC files to fragments</p>
+        <input type="file" id="ifc-input" accept=".ifc" style="display: none;">
+        <button id="ifc-browse-btn">Browse IFC Files</button>
+        <div id="conversion-status" style="
+          margin-top: 10px;
+          padding: 8px;
+          border-radius: 4px;
+          background: rgba(59, 130, 246, 0.1);
+          color: #3b82f6;
+          font-size: 0.9rem;
+          display: none;
+        "></div>
+        <div id="conversion-progress" style="
+          margin-top: 10px;
+          display: none;
+        ">
+          <div style="
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 5px;
+          ">
+            <div id="progress-bar" style="
+              background: #3b82f6;
+              height: 100%;
+              width: 0%;
+              transition: width 0.3s ease;
+              border-radius: 4px;
+            "></div>
+          </div>
+          <div id="progress-text" style="
+            font-size: 0.85rem;
+            color: #a1a1aa;
+            text-align: center;
+          ">Processing...</div>
+        </div>
+      </div>
+    `;
+    ifcZone.style.cssText = `
+      position: fixed;
+      top: 80px;
+      left: 40px;
+      width: 320px;
+      background: rgba(34, 197, 94, 0.1);
+      color: #f3f4f6;
+      padding: 28px 24px 20px 24px;
+      border-radius: 14px;
+      border: 2px solid #22c55e;
+      z-index: 1001;
+      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18);
+      transition: all 0.3s cubic-bezier(.4,2,.6,1);
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    `;
+    document.body.appendChild(ifcZone);
+
+    // Create file drop zone overlay (moved down)
     const dropZone = document.createElement("div");
     dropZone.id = "drop-zone";
     dropZone.innerHTML = `
@@ -157,7 +219,7 @@ class SimpleUI {
     `;
     dropZone.style.cssText = `
       position: fixed;
-      top: 80px;
+      top: 280px;
       left: 40px;
       width: 320px;
       background: rgba(24, 32, 48, 0.96);
@@ -235,7 +297,7 @@ class SimpleUI {
     this.propertiesPanel.id = 'properties-panel';
     this.propertiesPanel.style.cssText = `
       position: fixed;
-      top: 340px;
+      top: 540px;
       left: 40px;
       width: 320px;
       background: rgba(24,32,48,0.98);
@@ -764,6 +826,27 @@ class FragmentViewer {
       this.handleFiles(files);
     });
 
+    // === IFC CONVERSION HANDLERS ===
+    const ifcInput = document.getElementById("ifc-input") as HTMLInputElement;
+    const ifcBrowseBtn = document.getElementById("ifc-browse-btn");
+    const conversionStatus = document.getElementById("conversion-status");
+    const conversionProgress = document.getElementById("conversion-progress");
+
+    if (ifcInput && ifcBrowseBtn && conversionStatus) {
+      // IFC file input change handler
+      ifcInput.addEventListener("change", (event) => {
+        const files = (event.target as HTMLInputElement).files;
+        if (files && files.length > 0) {
+          this.handleIfcConversion(files[0], conversionStatus);
+        }
+      });
+
+      // IFC browse button
+      ifcBrowseBtn.addEventListener("click", () => {
+        ifcInput.click();
+      });
+    }
+
     console.log("📁 File handling setup complete");
   }
 
@@ -914,6 +997,102 @@ class FragmentViewer {
     this.ui.updateStatus("All fragments cleared");
     // Reset camera
     this.world.camera.controls?.setLookAt(10, 10, 10, 0, 0, 0);
+  }
+
+  /**
+   * Handle IFC file conversion
+   */
+  private async handleIfcConversion(file: File, statusElement: HTMLElement) {
+    const progressDiv = document.getElementById("conversion-progress");
+    const progressBar = document.getElementById("progress-bar");
+    const progressText = document.getElementById("progress-text");
+    
+    try {
+      // Show progress bar and initial status
+      statusElement.style.display = 'block';
+      statusElement.style.background = 'rgba(59, 130, 246, 0.1)';
+      statusElement.style.color = '#3b82f6';
+      statusElement.textContent = `🔄 Starting conversion...`;
+      
+      if (progressDiv) progressDiv.style.display = 'block';
+      if (progressBar) progressBar.style.width = '10%';
+      if (progressText) progressText.textContent = 'Uploading file...';
+      
+      this.ui.updateStatus(`Converting IFC file: ${file.name}`);
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Update progress
+      if (progressBar) progressBar.style.width = '30%';
+      if (progressText) progressText.textContent = 'Processing IFC data...';
+      statusElement.textContent = `🔄 Converting ${file.name}...`;
+
+      // Send to backend for conversion
+      const response = await fetch('http://localhost:8111/api/convert', {
+        method: 'POST',
+        body: formData
+      });
+
+      // Update progress
+      if (progressBar) progressBar.style.width = '70%';
+      if (progressText) progressText.textContent = 'Generating fragments...';
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Complete progress
+        if (progressBar) progressBar.style.width = '100%';
+        if (progressText) progressText.textContent = 'Conversion complete!';
+        
+        // Show success
+        statusElement.style.background = 'rgba(34, 197, 94, 0.1)';
+        statusElement.style.color = '#22c55e';
+        statusElement.textContent = `✅ Converted to ${result.output_file} (${result.size_mb} MB)`;
+        this.ui.updateStatus(`✅ Conversion complete: ${result.output_file}`);
+
+        // Auto-load the converted fragment
+        setTimeout(async () => {
+          try {
+            if (progressText) progressText.textContent = 'Loading in 3D viewer...';
+            
+            const fragmentResponse = await fetch(`http://localhost:8111/api/fragments/${result.output_file}`);
+            if (fragmentResponse.ok) {
+              const blob = await fragmentResponse.blob();
+              const fragmentFile = new File([blob], result.output_file, { type: "application/octet-stream" });
+              await this.loadFragmentFile(fragmentFile);
+              
+              statusElement.textContent = `✅ Loaded ${result.output_file} in 3D viewer`;
+              if (progressText) progressText.textContent = 'Ready for next conversion';
+              
+              // Hide progress after success
+              setTimeout(() => {
+                if (progressDiv) progressDiv.style.display = 'none';
+              }, 2000);
+            }
+          } catch (loadError) {
+            console.error('Failed to auto-load fragment:', loadError);
+            statusElement.textContent = `✅ Converted but auto-load failed - manually load ${result.output_file}`;
+            if (progressDiv) progressDiv.style.display = 'none';
+          }
+        }, 500);
+
+      } else {
+        throw new Error(result.error || 'Conversion failed');
+      }
+
+    } catch (error) {
+      console.error('IFC Conversion error:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Hide progress and show error
+      if (progressDiv) progressDiv.style.display = 'none';
+      statusElement.style.background = 'rgba(239, 68, 68, 0.1)';
+      statusElement.style.color = '#ef4444';
+      statusElement.textContent = `❌ Conversion failed: ${errorMessage}`;
+      this.ui.updateStatus(`❌ IFC conversion failed: ${errorMessage}`);
+    }
   }
 
   /**

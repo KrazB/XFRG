@@ -51,17 +51,12 @@ from watchdog.events import FileSystemEventHandler
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
-# Add the frag_convert directory to Python path for imports
-FRAG_CONVERT_DIR = Path("/data/XVUE/frag_convert")
-sys.path.append(str(FRAG_CONVERT_DIR))
+# Add the current directory to Python path for local imports
+BACKEND_DIR = Path(__file__).parent.parent
+sys.path.append(str(BACKEND_DIR))
 
-# Import the existing converter
-try:
-    from ifc_fragments_converter import IfcFragmentsConverter
-except ImportError as e:
-    print(f"❌ Failed to import frag_convert utilities: {e}")
-    print(f"   Ensure {FRAG_CONVERT_DIR} exists and contains the converter modules")
-    sys.exit(1)
+# Node.js converter integration
+CONVERTER_SCRIPT = BACKEND_DIR / "ifc_converter.js"
 
 
 class Config(BaseSettings):
@@ -288,15 +283,30 @@ class QgenImpfragProcessor:
         try:
             self.logger.info(f"🔄 Starting conversion of {filename}")
             
-            # Use the existing converter from frag_convert
-            converter = IfcFragmentsConverter(
-                source_dir=str(ifc_file.parent),
-                target_dir=str(self.config.fragments_output_dir),
-                single_file=filename
+            # Use the Node.js converter script
+            cmd = [
+                "node", 
+                str(CONVERTER_SCRIPT),
+                "--input", str(ifc_file),
+                "--output", str(output_file)
+            ]
+            
+            self.logger.info(f"Running converter: {' '.join(cmd)}")
+            
+            # Run the Node.js converter
+            result = subprocess.run(
+                cmd,
+                cwd=str(BACKEND_DIR),
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout
             )
             
-            # Run conversion
-            converter.run()
+            if result.returncode != 0:
+                error_msg = result.stderr.strip() or result.stdout.strip() or "Unknown conversion error"
+                raise Exception(f"Converter failed: {error_msg}")
+            
+            self.logger.info(f"Converter output: {result.stdout.strip()}")
             
             # Check if conversion was successful
             if output_file.exists():
