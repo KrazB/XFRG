@@ -480,6 +480,34 @@ class SimpleUI {
  * Main Fragment Viewer Application
  */
 class FragmentViewer {
+  private components!: OBC.Components;
+  private world!: OBC.World;
+  private fragments!: FRAGS.FragmentsModels;
+  private ui: SimpleUI;
+  private loadedModels: { model: any, fileName: string }[] = [];
+  private workerUrl!: string;
+
+  // 🎛️ User-Adjustable Camera Settings
+  public cameraSettings = {
+    // Clipping Planes (adjustable for different model scales)
+    nearPlane: 0.1,       // Default: 0.1 - Minimum distance for fine details
+    farPlane: 50000,      // Default: 50,000 - Maximum viewing distance for large BIM models
+    
+    // Distance Multipliers (how far the camera sits from models)
+    closeFitMultiplier: 5.0,  // Default: 5.0 - Close viewing distance
+    farFitMultiplier: 8.0,    // Default: 8.0 - Far overview distance
+    
+    // Camera Height Offsets (bird's eye perspective)
+    closeHeightOffset: 2.0,   // Default: 2.0 - Height for close viewing
+    farHeightOffset: 3.0,     // Default: 3.0 - Height for overview
+    
+    // Model Scaling Thresholds and Multipliers
+    minimumDistance: 200,     // Default: 200 - Minimum camera distance
+    mediumModelThreshold: 100,  // Default: 100 - When to apply 2x scaling
+    largeModelThreshold: 500,   // Default: 500 - When to apply 3x scaling
+    veryLargeModelThreshold: 1000, // Default: 1000 - When to apply 4x scaling
+  };
+
   // Show all elements in all loaded models
   private async showAllFragments() {
     for (const { model } of this.loadedModels) {
@@ -649,69 +677,156 @@ class FragmentViewer {
           if (intersect.object && intersect.object.userData && intersect.object.userData.fragmentId !== undefined) {
             fragmentId = intersect.object.userData.fragmentId;
           }
-          // If fragmentId found, get properties
-          if (fragmentId !== null && model.getProperties) {
-            let props = null;
-            try {
-              props = await model.getProperties(fragmentId);
-            } catch (err) {
-              props = null;
-            }
-            if (this.ui.propertiesContent) {
-              if (props && Object.keys(props).length > 0) {
-                let html = `<div style='font-weight:600;color:#7dd3fc;margin-bottom:4px;'>Component Properties (ID: ${fragmentId})</div>`;
-                html += '<table style="width:100%;font-size:0.97rem;border-collapse:collapse;">';
-                for (const key in props) {
-                  html += `<tr><td style='padding:2px 6px;color:#7dd3fc;'>${key}</td><td style='padding:2px 6px;'>${props[key]}</td></tr>`;
-                }
-                html += '</table>';
-                this.ui.propertiesContent.innerHTML = html;
-              } else {
-                this.ui.propertiesContent.innerHTML = `<span style="color:#f87171">No properties found for component (ID: ${fragmentId}).</span>`;
-              }
-            }
-            // Also select the model in the dropdown
-            if (this.ui.propertiesDropdown) {
-              for (let i = 0; i < this.ui.propertiesDropdown.options.length; i++) {
-                if (this.ui.propertiesDropdown.options[i].text === fileName) {
-                  this.ui.propertiesDropdown.selectedIndex = i;
-                  break;
-                }
-              }
-            }
+          // If fragmentId found, get properties using proper ThatOpen methods
+          if (fragmentId !== null) {
+            await this.displayComponentProperties(model, fragmentId, fileName);
             return;
           }
         }
       }
+      
+      // If no component clicked, clear properties display
+      if (this.ui.propertiesContent) {
+        this.ui.propertiesContent.innerHTML = `<div style="color:#94a3b8;font-style:italic;">Click on a component to view properties</div>`;
+      }
     });
   }
-  private components!: OBC.Components;
-  private world!: OBC.World;
-  private fragments!: FRAGS.FragmentsModels;
-  private ui: SimpleUI;
-  private loadedModels: { model: any, fileName: string }[] = [];
-  private workerUrl!: string;
 
-  // 🎛️ User-Adjustable Camera Settings
-  public cameraSettings = {
-    // Clipping Planes (adjustable for different model scales)
-    nearPlane: 0.1,       // Default: 0.1 - Minimum distance for fine details
-    farPlane: 50000,      // Default: 50,000 - Maximum viewing distance for large BIM models
-    
-    // Distance Multipliers (how far the camera sits from models)
-    closeFitMultiplier: 5.0,  // Default: 5.0 - Close viewing distance
-    farFitMultiplier: 8.0,    // Default: 8.0 - Far overview distance
-    
-    // Camera Height Offsets (bird's eye perspective)
-    closeHeightOffset: 2.0,   // Default: 2.0 - Height for close viewing
-    farHeightOffset: 3.0,     // Default: 3.0 - Height for overview
-    
-    // Model Scaling Thresholds and Multipliers
-    minimumDistance: 200,     // Default: 200 - Minimum camera distance
-    mediumModelThreshold: 100,  // Default: 100 - When to apply 2x scaling
-    largeModelThreshold: 500,   // Default: 500 - When to apply 3x scaling
-    veryLargeModelThreshold: 1000, // Default: 1000 - When to apply 4x scaling
-  };
+  /**
+   * Display comprehensive component properties using ThatOpen best practices
+   */
+  private async displayComponentProperties(model: any, fragmentId: string, fileName: string) {
+    if (!this.ui.propertiesContent) return;
+
+    try {
+      // Get basic fragment info
+      let properties: any = {};
+      let ifcElement: any = null;
+      let expressID: number | null = null;
+
+      // Try multiple methods to get properties
+      if (model.getProperties) {
+        try {
+          properties = await model.getProperties(fragmentId);
+        } catch (err) {
+          console.log("getProperties failed, trying alternative methods");
+        }
+      }
+
+      // Try to get the actual IFC element using ThatOpen methods
+      if (model.getElementByFragmentId) {
+        try {
+          ifcElement = await model.getElementByFragmentId(fragmentId);
+          if (ifcElement && ifcElement.expressID) {
+            expressID = ifcElement.expressID;
+          }
+        } catch (err) {
+          console.log("getElementByFragmentId failed");
+        }
+      }
+
+      // Try alternative method to get element by ID
+      if (!ifcElement && model.getElementByID && expressID) {
+        try {
+          ifcElement = await model.getElementByID(expressID);
+        } catch (err) {
+          console.log("getElementByID failed");
+        }
+      }
+
+      // Build comprehensive properties display
+      let html = `
+        <div style='font-weight:600;color:#60a5fa;margin-bottom:8px;padding:8px;background:rgba(59,130,246,0.1);border-radius:6px;'>
+          🏗️ Component Details
+        </div>
+      `;
+
+      // Fragment Information Section
+      html += `
+        <div style='background:rgba(30,41,59,0.5);padding:8px;border-radius:6px;margin-bottom:8px;'>
+          <div style='font-weight:600;color:#7dd3fc;margin-bottom:4px;'>📦 Fragment Info</div>
+          <table style="width:100%;font-size:0.9rem;">
+            <tr><td style='color:#94a3b8;padding:2px 4px;'>Fragment ID:</td><td style='color:#f3f4f6;padding:2px 4px;'>${fragmentId}</td></tr>
+            <tr><td style='color:#94a3b8;padding:2px 4px;'>Model:</td><td style='color:#f3f4f6;padding:2px 4px;'>${fileName}</td></tr>
+            ${expressID ? `<tr><td style='color:#94a3b8;padding:2px 4px;'>Express ID:</td><td style='color:#f3f4f6;padding:2px 4px;'>${expressID}</td></tr>` : ''}
+          </table>
+        </div>
+      `;
+
+      // IFC Properties Section
+      if (ifcElement) {
+        html += `
+          <div style='background:rgba(16,185,129,0.1);padding:8px;border-radius:6px;margin-bottom:8px;'>
+            <div style='font-weight:600;color:#10b981;margin-bottom:4px;'>🏛️ IFC Properties</div>
+            <table style="width:100%;font-size:0.9rem;">
+        `;
+
+        // Essential IFC properties
+        const essentialProps = ['GlobalId', 'Name', 'type', 'IfcType', 'Description', 'Tag', 'ObjectType'];
+        for (const prop of essentialProps) {
+          if (ifcElement[prop] !== undefined && ifcElement[prop] !== null && ifcElement[prop] !== '') {
+            const value = typeof ifcElement[prop] === 'object' ? JSON.stringify(ifcElement[prop]) : String(ifcElement[prop]);
+            html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>${prop}:</td><td style='color:#f3f4f6;padding:2px 4px;'>${value}</td></tr>`;
+          }
+        }
+
+        html += `</table></div>`;
+      }
+
+      // Additional Properties Section
+      if (properties && Object.keys(properties).length > 0) {
+        html += `
+          <div style='background:rgba(168,85,247,0.1);padding:8px;border-radius:6px;margin-bottom:8px;'>
+            <div style='font-weight:600;color:#a855f7;margin-bottom:4px;'>⚙️ Additional Properties</div>
+            <table style="width:100%;font-size:0.9rem;">
+        `;
+
+        // Filter out already displayed properties
+        const displayedProps = ['GlobalId', 'Name', 'type', 'IfcType', 'Description', 'Tag', 'ObjectType'];
+        for (const key in properties) {
+          if (!displayedProps.includes(key) && properties[key] !== undefined && properties[key] !== null && properties[key] !== '') {
+            const value = typeof properties[key] === 'object' ? JSON.stringify(properties[key]) : String(properties[key]);
+            html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>${key}:</td><td style='color:#f3f4f6;padding:2px 4px;'>${value}</td></tr>`;
+          }
+        }
+
+        html += `</table></div>`;
+      }
+
+      // If no properties found at all
+      if (!ifcElement && (!properties || Object.keys(properties).length === 0)) {
+        html += `
+          <div style='background:rgba(239,68,68,0.1);padding:8px;border-radius:6px;color:#f87171;text-align:center;'>
+            ⚠️ No properties available for this component
+            <br><small style='color:#94a3b8;'>Fragment ID: ${fragmentId}</small>
+          </div>
+        `;
+      }
+
+      this.ui.propertiesContent.innerHTML = html;
+
+      // Update dropdown selection
+      if (this.ui.propertiesDropdown) {
+        for (let i = 0; i < this.ui.propertiesDropdown.options.length; i++) {
+          if (this.ui.propertiesDropdown.options[i].text === fileName) {
+            this.ui.propertiesDropdown.selectedIndex = i;
+            break;
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error("Error displaying component properties:", error);
+      if (this.ui.propertiesContent) {
+        this.ui.propertiesContent.innerHTML = `
+          <div style='color:#f87171;text-align:center;padding:8px;'>
+            ❌ Error loading properties
+            <br><small style='color:#94a3b8;'>Check console for details</small>
+          </div>
+        `;
+      }
+    }
+  }
 
   constructor() {
     this.ui = new SimpleUI();
@@ -1140,31 +1255,15 @@ class FragmentViewer {
         this.ui.propertiesDropdown.onchange = async (e) => {
           const idx = (e.target as HTMLSelectElement).value;
           if (!idx) {
-            this.ui.propertiesContent!.innerHTML = '';
+            if (this.ui.propertiesContent) {
+              this.ui.propertiesContent.innerHTML = `<div style="color:#94a3b8;font-style:italic;">Select a fragment to view model overview</div>`;
+            }
             return;
           }
           const selected = this.loadedModels[parseInt(idx)];
           if (!selected) return;
-          // Try to get properties using ThatOpen API
-          let props: any = null;
-          try {
-            if (selected.model.getProperties) {
-              props = await selected.model.getProperties();
-            }
-          } catch (err) {
-            props = null;
-          }
-          if (!props) {
-            this.ui.propertiesContent!.innerHTML = '<span style="color:#f87171">No properties found.</span>';
-            return;
-          }
-          // Render properties as a table
-          let html = '<table style="width:100%;font-size:0.97rem;border-collapse:collapse;">';
-          for (const key in props) {
-            html += `<tr><td style='padding:2px 6px;color:#7dd3fc;'>${key}</td><td style='padding:2px 6px;'>${props[key]}</td></tr>`;
-          }
-          html += '</table>';
-          this.ui.propertiesContent!.innerHTML = html;
+          
+          await this.displayModelOverview(selected.model, selected.fileName);
         };
       }
       // ...existing code...
@@ -1172,6 +1271,131 @@ class FragmentViewer {
       console.error(`❌ Failed to load ${file.name}:`, error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.ui.updateStatus(`❌ Failed to load ${file.name}: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Display comprehensive model overview when selected from dropdown
+   */
+  private async displayModelOverview(model: any, fileName: string) {
+    if (!this.ui.propertiesContent) return;
+
+    try {
+      let html = `
+        <div style='font-weight:600;color:#60a5fa;margin-bottom:8px;padding:8px;background:rgba(59,130,246,0.1);border-radius:6px;'>
+          📊 Model Overview: ${fileName}
+        </div>
+      `;
+
+      // Model Information Section
+      html += `
+        <div style='background:rgba(30,41,59,0.5);padding:8px;border-radius:6px;margin-bottom:8px;'>
+          <div style='font-weight:600;color:#7dd3fc;margin-bottom:4px;'>📋 Model Information</div>
+          <table style="width:100%;font-size:0.9rem;">
+            <tr><td style='color:#94a3b8;padding:2px 4px;'>File Name:</td><td style='color:#f3f4f6;padding:2px 4px;'>${fileName}</td></tr>
+      `;
+
+      // Try to get model schema and basic info
+      if (model.schema) {
+        html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>IFC Schema:</td><td style='color:#f3f4f6;padding:2px 4px;'>${model.schema}</td></tr>`;
+      }
+
+      if (model.modelId) {
+        html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>Model ID:</td><td style='color:#f3f4f6;padding:2px 4px;'>${model.modelId}</td></tr>`;
+      }
+
+      // Fragment count and statistics
+      if (model.fragments && model.fragments.size) {
+        html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>Fragments:</td><td style='color:#f3f4f6;padding:2px 4px;'>${model.fragments.size}</td></tr>`;
+      }
+
+      html += `</table></div>`;
+
+      // Element Statistics Section
+      html += `
+        <div style='background:rgba(16,185,129,0.1);padding:8px;border-radius:6px;margin-bottom:8px;'>
+          <div style='font-weight:600;color:#10b981;margin-bottom:4px;'>🏗️ Element Statistics</div>
+          <table style="width:100%;font-size:0.9rem;">
+      `;
+
+      // Try to get element counts by type
+      const elementTypes = ['IfcWall', 'IfcSlab', 'IfcColumn', 'IfcBeam', 'IfcDoor', 'IfcWindow', 'IfcStair', 'IfcRoof', 'IfcSpace'];
+      let totalElements = 0;
+
+      for (const elementType of elementTypes) {
+        try {
+          if (model.getItemsOfCategory) {
+            const items = await model.getItemsOfCategory(elementType);
+            if (items && items.length > 0) {
+              totalElements += items.length;
+              html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>${elementType}:</td><td style='color:#f3f4f6;padding:2px 4px;'>${items.length}</td></tr>`;
+            }
+          }
+        } catch (err) {
+          // Skip if method doesn't exist or fails
+        }
+      }
+
+      if (totalElements > 0) {
+        html += `<tr style='border-top:1px solid #374151;'><td style='color:#10b981;padding:4px 4px;font-weight:600;'>Total Elements:</td><td style='color:#f3f4f6;padding:4px 4px;font-weight:600;'>${totalElements}</td></tr>`;
+      } else {
+        html += `<tr><td colspan='2' style='color:#94a3b8;padding:4px 4px;text-align:center;font-style:italic;'>Element counts not available</td></tr>`;
+      }
+
+      html += `</table></div>`;
+
+      // Model Properties Section
+      let modelProperties: any = {};
+      try {
+        if (model.getProperties) {
+          modelProperties = await model.getProperties();
+        }
+      } catch (err) {
+        // Properties not available
+      }
+
+      if (modelProperties && Object.keys(modelProperties).length > 0) {
+        html += `
+          <div style='background:rgba(168,85,247,0.1);padding:8px;border-radius:6px;margin-bottom:8px;'>
+            <div style='font-weight:600;color:#a855f7;margin-bottom:4px;'>⚙️ Model Properties</div>
+            <table style="width:100%;font-size:0.9rem;">
+        `;
+
+        // Display first 10 properties to avoid overwhelming the UI
+        const propKeys = Object.keys(modelProperties).slice(0, 10);
+        for (const key of propKeys) {
+          const value = typeof modelProperties[key] === 'object' ? 
+            JSON.stringify(modelProperties[key]).substring(0, 50) + '...' : 
+            String(modelProperties[key]);
+          html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>${key}:</td><td style='color:#f3f4f6;padding:2px 4px;'>${value}</td></tr>`;
+        }
+
+        if (Object.keys(modelProperties).length > 10) {
+          html += `<tr><td colspan='2' style='color:#94a3b8;padding:4px 4px;text-align:center;font-style:italic;'>... and ${Object.keys(modelProperties).length - 10} more properties</td></tr>`;
+        }
+
+        html += `</table></div>`;
+      }
+
+      // Instructions
+      html += `
+        <div style='background:rgba(59,130,246,0.1);padding:8px;border-radius:6px;color:#94a3b8;text-align:center;font-size:0.85rem;'>
+          💡 Click on individual components in the 3D view to see detailed properties
+        </div>
+      `;
+
+      this.ui.propertiesContent.innerHTML = html;
+
+    } catch (error) {
+      console.error("Error displaying model overview:", error);
+      if (this.ui.propertiesContent) {
+        this.ui.propertiesContent.innerHTML = `
+          <div style='color:#f87171;text-align:center;padding:8px;'>
+            ❌ Error loading model overview
+            <br><small style='color:#94a3b8;'>Check console for details</small>
+          </div>
+        `;
+      }
     }
   }
 
