@@ -1,12 +1,46 @@
-# XFRG - IFC Processing and Fragment Viewer - Quick Start Guide
+# XFRG - Complete IFC Processing Pipeline - Quick Start Guide
 
-## 🚀 Overview
+## 🎯 What You're Getting
 
-XFRG is a complete IFC file processing and 3D visualization application with a fully functional conversion pipeline:
+A **fully functional IFC conversion system** that works out of the box:
 
-1. **Backend**: Python Flask API + Node.js IFC converter using ThatOpen Components
-2. **Frontend**: TypeScript/Vite 3D viewer with real-time progress tracking
-3. **Converter**: Node.js script with ThatOpen Components IfcImporter for IFC→Fragment conversion
+1. **🚀 Complete Pipeline**: IFC upload → conversion → 3D viewing  
+2. **📊 Real-time Progress**: Live progress bars during conversion
+3. **🎮 Interactive 3D Viewer**: Mouse navigation, object selection, properties
+4. **⚡ High Performance**: 82%+ compression ratio (359MB → 62.6MB tested)
+5. **🔧 Development Ready**: Hot reload, VS Code tasks, debugging support
+
+## ⚡ 5-Minute Setup
+
+### Method 1: Instant Development Setup (Recommended)
+
+```bash
+# 1. Start development servers
+cd D:\XFRG
+
+# Terminal 1: Backend API (port 8111)
+python backend/app.py
+
+# Terminal 2: Frontend Dev Server (port 3111)  
+cd frontend
+npm run dev
+
+# 3. Open browser: http://localhost:3111
+# 4. Ready! Upload IFC files and watch them convert to 3D fragments
+```
+
+### Method 2: VS Code Integrated (Even Easier!)
+
+```bash
+# Open in VS Code
+code D:\XFRG
+
+# Use Command Palette (Ctrl+Shift+P):
+Tasks: Run Task → "Start Backend Server"
+Tasks: Run Task → "Start Frontend Dev Server"
+
+# Or use Terminal → Run Task → Select desired task
+```
 
 ## ⚡ Quick Start (5 minutes)
 
