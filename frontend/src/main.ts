@@ -56,7 +56,7 @@ class SimpleUI {
     this.visibilityPanel.id = 'visibility-panel';
     this.visibilityPanel.style.cssText = `
       position: fixed;
-      top: 540px;
+      top: 580px;
       left: 40px;
       width: 320px;
       background: rgba(24,32,48,0.98);
@@ -219,7 +219,7 @@ class SimpleUI {
     `;
     dropZone.style.cssText = `
       position: fixed;
-      top: 280px;
+      top: 300px;
       left: 40px;
       width: 320px;
       background: rgba(24, 32, 48, 0.96);
@@ -297,9 +297,9 @@ class SimpleUI {
     this.propertiesPanel.id = 'properties-panel';
     this.propertiesPanel.style.cssText = `
       position: fixed;
-      top: 540px;
-      left: 40px;
-      width: 320px;
+      top: 560px;
+      right: 40px;
+      width: 270px;
       background: rgba(24,32,48,0.98);
       border-radius: 10px;
       box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
