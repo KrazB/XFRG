@@ -76,8 +76,8 @@ class SimpleUI {
         <button id='hide-all-btn' style='flex:1;background:#dc2626;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Hide All</button>
       </div>
       <div style='display:flex;gap:8px;margin-bottom:8px;'>
-        <button id='fit-tight-btn' style='flex:1;background:#2563eb;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Fit (Tight)</button>
-        <button id='fit-wide-btn' style='flex:1;background:#0ea5e9;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Fit (Wide)</button>
+        <button id='fit-tight-btn' style='flex:1;background:#2563eb;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Fit (Close)</button>
+        <button id='fit-wide-btn' style='flex:1;background:#0ea5e9;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Fit (Far)</button>
       </div>
       <div style='margin-bottom:6px;'>Toggle Category:</div>
       <select id='category-dropdown' style='width:100%;padding:7px 8px;border-radius:6px;border:1px solid #3b82f6;background:#1e293b;color:#f3f4f6;font-size:1rem;'>
@@ -447,6 +447,7 @@ class FragmentViewer {
   // Fit camera to all loaded models (tight or wide)
   private fitCameraToModels(wide: boolean = false) {
     if (this.loadedModels.length === 0) return;
+    
     // Compute a combined bounding box for all loaded fragment models
     const combinedBox = new THREE.Box3();
     let hasBox = false;
@@ -459,18 +460,43 @@ class FragmentViewer {
         }
       }
     });
+    
     if (!hasBox) return;
+    
     const center = combinedBox.getCenter(new THREE.Vector3());
     const size = combinedBox.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
-    // For wide fit, add margin
-    const margin = wide ? maxDim * 1.2 : maxDim * 0.5;
-    const distance = maxDim + margin;
+    
+    // Enhanced distance calculation for better handling of large BIM models
+    // Use larger multipliers to accommodate models that are far away or very large
+    let distanceMultiplier: number;
+    let cameraOffset: number;
+    
+    if (wide) {
+      // Wide fit: Much larger distance for overview of entire project
+      distanceMultiplier = 3.5;  // Increased from 1.2
+      cameraOffset = 2.0;        // Higher camera position for better overview
+    } else {
+      // Tight fit: Still increased for better model visibility
+      distanceMultiplier = 2.0;  // Increased from 0.5
+      cameraOffset = 1.2;        // Moderate camera height
+    }
+    
+    // Calculate base distance - ensure minimum distance for very small models
+    const baseDistance = Math.max(maxDim * distanceMultiplier, 50); // Minimum 50 units
+    
+    // For very large models (typical in BIM), use additional scaling
+    const modelScale = maxDim > 1000 ? 1.5 : 1.0; // Extra scaling for large models
+    const finalDistance = baseDistance * modelScale;
+    
+    // Position camera at an angle that works well for architectural models
     const cameraPosition = new THREE.Vector3(
-      center.x + distance,
-      center.y + distance * 0.7,
-      center.z + distance
+      center.x + finalDistance * 0.8,     // Slightly offset from direct diagonal
+      center.y + finalDistance * cameraOffset, // Higher for better perspective
+      center.z + finalDistance * 0.6      // Good viewing angle for buildings
     );
+    
+    // Update camera position and target
     if (this.world.camera.controls) {
       this.world.camera.controls.setLookAt(
         cameraPosition.x,
@@ -484,7 +510,12 @@ class FragmentViewer {
       this.world.camera.three.position.copy(cameraPosition);
       this.world.camera.three.lookAt(center);
     }
+    
+    // Force render update
     this.world.renderer?.three.render(this.world.scene.three, this.world.camera.three);
+    
+    // Log for debugging (can be removed later)
+    console.log(`📐 Camera fit: Model size=${maxDim.toFixed(1)}, Distance=${finalDistance.toFixed(1)}, Wide=${wide}`);
   }
 
   // Toggle visibility by IFC category
