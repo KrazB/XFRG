@@ -96,6 +96,62 @@ class SimpleUI {
       <button id='toggle-category-btn' style='margin-top:8px;width:100%;background:#f59e42;color:#222;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Toggle Category</button>
     `;
     document.body.appendChild(this.visibilityPanel);
+
+    // 🎛️ Create Camera Settings Panel
+    const cameraPanel = document.createElement("div");
+    cameraPanel.id = "camera-settings-panel";
+    cameraPanel.style.cssText = `
+      position: fixed;
+      top: 120px;
+      right: 20px;
+      width: 280px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid #3b82f6;
+      border-radius: 8px;
+      padding: 12px;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.9rem;
+      z-index: 2000;
+      backdrop-filter: blur(10px);
+      max-height: 400px;
+      overflow-y: auto;
+    `;
+    cameraPanel.innerHTML = `
+      <div style='font-weight:600;color:#60a5fa;margin-bottom:8px;text-align:center;'>🎛️ Camera Settings</div>
+      
+      <div style='margin-bottom:10px;'>
+        <label>Near Plane: <span id='near-value'>0.1</span></label>
+        <input type='range' id='near-plane' min='0.01' max='10' step='0.01' value='0.1' style='width:100%;'>
+      </div>
+      
+      <div style='margin-bottom:10px;'>
+        <label>Far Plane: <span id='far-value'>50000</span></label>
+        <input type='range' id='far-plane' min='1000' max='100000' step='1000' value='50000' style='width:100%;'>
+      </div>
+      
+      <div style='margin-bottom:10px;'>
+        <label>Close Distance: <span id='close-value'>5.0</span>x</label>
+        <input type='range' id='close-distance' min='1' max='20' step='0.5' value='5.0' style='width:100%;'>
+      </div>
+      
+      <div style='margin-bottom:10px;'>
+        <label>Far Distance: <span id='far-value'>8.0</span>x</label>
+        <input type='range' id='far-distance' min='1' max='30' step='0.5' value='8.0' style='width:100%;'>
+      </div>
+      
+      <div style='margin-bottom:10px;'>
+        <label>Min Distance: <span id='min-distance-value'>200</span></label>
+        <input type='range' id='min-distance' min='50' max='1000' step='50' value='200' style='width:100%;'>
+      </div>
+      
+      <div style='display:flex;gap:4px;margin-top:8px;'>
+        <button id='reset-camera-btn' style='flex:1;background:#ef4444;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Reset</button>
+        <button id='apply-camera-btn' style='flex:1;background:#10b981;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Apply & Refit</button>
+      </div>
+    `;
+    document.body.appendChild(cameraPanel);
+    
     setTimeout(() => {
       const loading = document.getElementById("loading");
       if (loading) loading.style.display = "none";
@@ -467,33 +523,37 @@ class FragmentViewer {
     const size = combinedBox.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     
-    // Enhanced distance calculation for better handling of large BIM models
-    // Use larger multipliers to accommodate models that are far away or very large
+    // Enhanced distance calculation for BIM models - use configurable settings
+    // Access user-adjustable multipliers for flexible camera positioning
     let distanceMultiplier: number;
     let cameraOffset: number;
     
     if (wide) {
-      // Wide fit: Much larger distance for overview of entire project
-      distanceMultiplier = 3.5;  // Increased from 1.2
-      cameraOffset = 2.0;        // Higher camera position for better overview
+      // Far fit: Use configurable far distance for complete project overview
+      distanceMultiplier = this.cameraSettings.farFitMultiplier;
+      cameraOffset = this.cameraSettings.farHeightOffset;
     } else {
-      // Tight fit: Still increased for better model visibility
-      distanceMultiplier = 2.0;  // Increased from 0.5
-      cameraOffset = 1.2;        // Moderate camera height
+      // Close fit: Use configurable close distance for detailed viewing
+      distanceMultiplier = this.cameraSettings.closeFitMultiplier;
+      cameraOffset = this.cameraSettings.closeHeightOffset;
     }
     
-    // Calculate base distance - ensure minimum distance for very small models
-    const baseDistance = Math.max(maxDim * distanceMultiplier, 50); // Minimum 50 units
+    // Calculate base distance with configurable minimum
+    const baseDistance = Math.max(maxDim * distanceMultiplier, this.cameraSettings.minimumDistance);
     
-    // For very large models (typical in BIM), use additional scaling
-    const modelScale = maxDim > 1000 ? 1.5 : 1.0; // Extra scaling for large models
+    // Progressive scaling based on configurable thresholds
+    let modelScale = 1.0;
+    if (maxDim > this.cameraSettings.mediumModelThreshold) modelScale = 2.0;
+    if (maxDim > this.cameraSettings.largeModelThreshold) modelScale = 3.0;
+    if (maxDim > this.cameraSettings.veryLargeModelThreshold) modelScale = 4.0;
+    
     const finalDistance = baseDistance * modelScale;
     
-    // Position camera at an angle that works well for architectural models
+    // Position camera much farther back with better architectural viewing angles
     const cameraPosition = new THREE.Vector3(
-      center.x + finalDistance * 0.8,     // Slightly offset from direct diagonal
-      center.y + finalDistance * cameraOffset, // Higher for better perspective
-      center.z + finalDistance * 0.6      // Good viewing angle for buildings
+      center.x + finalDistance * 0.9,     // Farther diagonal offset
+      center.y + finalDistance * cameraOffset, // Configurable height for perspective
+      center.z + finalDistance * 0.8      // Farther back for better building viewing
     );
     
     // Update camera position and target
@@ -516,6 +576,35 @@ class FragmentViewer {
     
     // Log for debugging (can be removed later)
     console.log(`📐 Camera fit: Model size=${maxDim.toFixed(1)}, Distance=${finalDistance.toFixed(1)}, Wide=${wide}`);
+    console.log(`🎛️ Used settings: distanceMultiplier=${distanceMultiplier}, cameraOffset=${cameraOffset}, modelScale=${modelScale}`);
+  }
+
+  /**
+   * 🎛️ Update camera settings and apply them immediately
+   */
+  public updateCameraSettings(newSettings: Partial<typeof this.cameraSettings>) {
+    // Update the settings
+    Object.assign(this.cameraSettings, newSettings);
+    
+    // Re-apply clipping planes if camera exists
+    if (this.world?.camera?.three instanceof THREE.PerspectiveCamera) {
+      const camera = this.world.camera.three;
+      camera.near = this.cameraSettings.nearPlane;
+      camera.far = this.cameraSettings.farPlane;
+      camera.updateProjectionMatrix();
+      
+      console.log(`📷 Updated camera clipping planes: near=${camera.near}, far=${camera.far}`);
+    }
+    
+    // Optionally re-fit the camera to show changes
+    this.fitCameraToModels(false); // Re-fit with close settings
+  }
+
+  /**
+   * 🎛️ Get current camera settings (for UI display)
+   */
+  public getCameraSettings() {
+    return { ...this.cameraSettings };
   }
 
   // Toggle visibility by IFC category
@@ -603,6 +692,27 @@ class FragmentViewer {
   private loadedModels: { model: any, fileName: string }[] = [];
   private workerUrl!: string;
 
+  // 🎛️ User-Adjustable Camera Settings
+  public cameraSettings = {
+    // Clipping Planes (adjustable for different model scales)
+    nearPlane: 0.1,       // Default: 0.1 - Minimum distance for fine details
+    farPlane: 50000,      // Default: 50,000 - Maximum viewing distance for large BIM models
+    
+    // Distance Multipliers (how far the camera sits from models)
+    closeFitMultiplier: 5.0,  // Default: 5.0 - Close viewing distance
+    farFitMultiplier: 8.0,    // Default: 8.0 - Far overview distance
+    
+    // Camera Height Offsets (bird's eye perspective)
+    closeHeightOffset: 2.0,   // Default: 2.0 - Height for close viewing
+    farHeightOffset: 3.0,     // Default: 3.0 - Height for overview
+    
+    // Model Scaling Thresholds and Multipliers
+    minimumDistance: 200,     // Default: 200 - Minimum camera distance
+    mediumModelThreshold: 100,  // Default: 100 - When to apply 2x scaling
+    largeModelThreshold: 500,   // Default: 500 - When to apply 3x scaling
+    veryLargeModelThreshold: 1000, // Default: 1000 - When to apply 4x scaling
+  };
+
   constructor() {
     this.ui = new SimpleUI();
     this.init();
@@ -646,6 +756,95 @@ class FragmentViewer {
         if (category) this.toggleCategoryVisibility(category);
       });
     }
+
+    // 🎛️ Setup Camera Settings Panel Event Listeners
+    this.setupCameraSettingsListeners();
+  }
+
+  /**
+   * 🎛️ Setup event listeners for camera settings panel
+   */
+  private setupCameraSettingsListeners() {
+    // Get all camera setting elements
+    const nearPlane = document.getElementById('near-plane') as HTMLInputElement;
+    const farPlane = document.getElementById('far-plane') as HTMLInputElement;
+    const closeDistance = document.getElementById('close-distance') as HTMLInputElement;
+    const farDistance = document.getElementById('far-distance') as HTMLInputElement;
+    const minDistance = document.getElementById('min-distance') as HTMLInputElement;
+    const resetBtn = document.getElementById('reset-camera-btn');
+    const applyBtn = document.getElementById('apply-camera-btn');
+
+    // Update display values in real-time
+    nearPlane?.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value;
+      const display = document.getElementById('near-value');
+      if (display) display.textContent = value;
+    });
+
+    farPlane?.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value;
+      const display = document.getElementById('far-value');
+      if (display) display.textContent = value;
+    });
+
+    closeDistance?.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value;
+      const display = document.getElementById('close-value');
+      if (display) display.textContent = value;
+    });
+
+    farDistance?.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value;
+      const display = document.getElementById('far-value');
+      if (display) display.textContent = value;
+    });
+
+    minDistance?.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value;
+      const display = document.getElementById('min-distance-value');
+      if (display) display.textContent = value;
+    });
+
+    // Reset to defaults
+    resetBtn?.addEventListener('click', () => {
+      const defaults = {
+        nearPlane: 0.1,
+        farPlane: 50000,
+        closeFitMultiplier: 5.0,
+        farFitMultiplier: 8.0,
+        minimumDistance: 200
+      };
+      
+      if (nearPlane) nearPlane.value = defaults.nearPlane.toString();
+      if (farPlane) farPlane.value = defaults.farPlane.toString();
+      if (closeDistance) closeDistance.value = defaults.closeFitMultiplier.toString();
+      if (farDistance) farDistance.value = defaults.farFitMultiplier.toString();
+      if (minDistance) minDistance.value = defaults.minimumDistance.toString();
+      
+      // Update displays
+      document.getElementById('near-value')!.textContent = defaults.nearPlane.toString();
+      document.getElementById('far-value')!.textContent = defaults.farPlane.toString();
+      document.getElementById('close-value')!.textContent = defaults.closeFitMultiplier.toString();
+      document.getElementById('far-value')!.textContent = defaults.farFitMultiplier.toString();
+      document.getElementById('min-distance-value')!.textContent = defaults.minimumDistance.toString();
+      
+      // Apply the defaults
+      this.updateCameraSettings(defaults);
+    });
+
+    // Apply current settings and refit camera
+    applyBtn?.addEventListener('click', () => {
+      const newSettings = {
+        nearPlane: parseFloat(nearPlane?.value || '0.1'),
+        farPlane: parseFloat(farPlane?.value || '50000'),
+        closeFitMultiplier: parseFloat(closeDistance?.value || '5.0'),
+        farFitMultiplier: parseFloat(farDistance?.value || '8.0'),
+        minimumDistance: parseFloat(minDistance?.value || '200')
+      };
+      
+      this.updateCameraSettings(newSettings);
+      console.log('🎛️ Applied new camera settings:', newSettings);
+    });
   }
 
   /**
@@ -695,6 +894,16 @@ class FragmentViewer {
     const camera = this.world.camera.three;
     camera.position.set(50, 50, 50);
     camera.lookAt(0, 0, 0);
+    
+    // Configure clipping planes for much larger viewing distances
+    // This is crucial for the enhanced camera distances we're now using
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.near = this.cameraSettings.nearPlane;   // User-adjustable near plane
+      camera.far = this.cameraSettings.farPlane;     // User-adjustable far plane
+      camera.updateProjectionMatrix();
+      
+      console.log(`📷 Camera clipping planes: near=${camera.near}, far=${camera.far}`);
+    }
     
     // Setup controls with better defaults
     if (this.world.camera.controls) {

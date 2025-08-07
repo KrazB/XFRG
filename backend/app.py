@@ -20,9 +20,21 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuration
-FRAGMENTS_DIR = Path("../data/fragments").resolve()
-IFC_DIR = Path("../data/ifc").resolve()
-CONVERTER_SCRIPT = Path(__file__).parent / "ifc_converter.js"
+# Use absolute paths based on backend script location to avoid working directory issues
+BACKEND_DIR = Path(__file__).parent
+PROJECT_ROOT = BACKEND_DIR.parent
+FRAGMENTS_DIR = PROJECT_ROOT / "data" / "fragments"
+IFC_DIR = PROJECT_ROOT / "data" / "ifc"
+CONVERTER_SCRIPT = BACKEND_DIR / "ifc_converter.js"
+
+# Debug logging
+print(f"🔍 Backend starting from: {Path.cwd()}")
+print(f"📁 PROJECT_ROOT: {PROJECT_ROOT}")
+print(f"📁 FRAGMENTS_DIR resolved to: {FRAGMENTS_DIR}")
+print(f"📁 IFC_DIR resolved to: {IFC_DIR}")
+print(f"🔧 CONVERTER_SCRIPT: {CONVERTER_SCRIPT}")
+print(f"📄 Actual fragment files found: {list(FRAGMENTS_DIR.glob('*.frag'))}")
+print(f"📄 Actual IFC files found: {list(IFC_DIR.glob('*.ifc'))}")
 
 # Ensure directories exist
 FRAGMENTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -35,6 +47,21 @@ def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "service": "qgen-impfrag-backend"
+    })
+
+@app.route('/debug/paths', methods=['GET'])
+def debug_paths():
+    """Debug endpoint to show exactly where backend is looking"""
+    fragments_files = list(FRAGMENTS_DIR.glob("*.frag"))
+    return jsonify({
+        "working_directory": str(Path.cwd()),
+        "fragments_dir": str(FRAGMENTS_DIR),
+        "fragments_dir_exists": FRAGMENTS_DIR.exists(),
+        "ifc_dir": str(IFC_DIR),
+        "ifc_dir_exists": IFC_DIR.exists(),
+        "converter_script": str(CONVERTER_SCRIPT),
+        "fragments_found": [str(f) for f in fragments_files],
+        "fragments_count": len(fragments_files)
     })
 
 @app.route('/api/fragments', methods=['GET'])
