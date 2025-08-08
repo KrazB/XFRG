@@ -51,58 +51,12 @@ class SimpleUI {
       }
     }, 2000);
 
-    // --- Visibility & Camera Tools Panel ---
-    this.visibilityPanel = document.createElement('div');
-    this.visibilityPanel.id = 'visibility-panel';
-    this.visibilityPanel.style.cssText = `
+    // 🔍 Create Enhanced View & Visibility Controls Panel
+    const viewControlsPanel = document.createElement("div");
+    viewControlsPanel.id = "view-controls-panel";
+    viewControlsPanel.style.cssText = `
       position: fixed;
-      top: 580px;
-      left: 40px;
-      width: 320px;
-      background: rgba(24,32,48,0.98);
-      border-radius: 10px;
-      box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
-      padding: 14px 14px 10px 14px;
-      color: #f3f4f6;
-      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-      font-size: 1rem;
-      z-index: 1002;
-      margin-top: 10px;
-    `;
-    this.visibilityPanel.innerHTML = `
-      <div style='font-weight:600;font-size:1.08rem;margin-bottom:7px;letter-spacing:0.01em;'>Visibility & Camera Tools</div>
-      <div style='display:flex;gap:8px;margin-bottom:8px;'>
-        <button id='show-all-btn' style='flex:1;background:#059669;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Show All</button>
-        <button id='hide-all-btn' style='flex:1;background:#dc2626;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Hide All</button>
-      </div>
-      <div style='display:flex;gap:8px;margin-bottom:8px;'>
-        <button id='fit-tight-btn' style='flex:1;background:#2563eb;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Fit (Close)</button>
-        <button id='fit-wide-btn' style='flex:1;background:#0ea5e9;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Fit (Far)</button>
-      </div>
-      <div style='margin-bottom:6px;'>Toggle Category:</div>
-      <select id='category-dropdown' style='width:100%;padding:7px 8px;border-radius:6px;border:1px solid #3b82f6;background:#1e293b;color:#f3f4f6;font-size:1rem;'>
-        <option value=''>-- Select Category --</option>
-        <option value='IfcWall'>IfcWall</option>
-        <option value='IfcSlab'>IfcSlab</option>
-        <option value='IfcColumn'>IfcColumn</option>
-        <option value='IfcBeam'>IfcBeam</option>
-        <option value='IfcDoor'>IfcDoor</option>
-        <option value='IfcWindow'>IfcWindow</option>
-        <option value='IfcStair'>IfcStair</option>
-        <option value='IfcRoof'>IfcRoof</option>
-        <option value='IfcSpace'>IfcSpace</option>
-        <option value='IfcBuildingStorey'>IfcBuildingStorey</option>
-      </select>
-      <button id='toggle-category-btn' style='margin-top:8px;width:100%;background:#f59e42;color:#222;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Toggle Category</button>
-    `;
-    document.body.appendChild(this.visibilityPanel);
-
-    // 🎛️ Create Camera Settings Panel
-    const cameraPanel = document.createElement("div");
-    cameraPanel.id = "camera-settings-panel";
-    cameraPanel.style.cssText = `
-      position: fixed;
-      top: 120px;
+      top: 350px;
       right: 20px;
       width: 280px;
       background: rgba(30, 41, 59, 0.95);
@@ -114,43 +68,48 @@ class SimpleUI {
       font-size: 0.9rem;
       z-index: 2000;
       backdrop-filter: blur(10px);
-      max-height: 400px;
+      max-height: 450px;
       overflow-y: auto;
     `;
-    cameraPanel.innerHTML = `
-      <div style='font-weight:600;color:#60a5fa;margin-bottom:8px;text-align:center;'>🎛️ Camera Settings</div>
+    viewControlsPanel.innerHTML = `
+      <div style='font-weight:600;color:#60a5fa;margin-bottom:8px;text-align:center;'>🔍 View & Visibility Controls</div>
       
-      <div style='margin-bottom:10px;'>
-        <label>Near Plane: <span id='near-value'>0.1</span></label>
-        <input type='range' id='near-plane' min='0.01' max='10' step='0.01' value='0.1' style='width:100%;'>
+      <div style='margin-bottom:12px;'>
+        <button id='fit-view-btn' style='width:100%;background:#10b981;color:#fff;border:none;padding:8px 0;border-radius:5px;cursor:pointer;font-weight:500;'>📐 Fit All Models to View</button>
       </div>
       
-      <div style='margin-bottom:10px;'>
-        <label>Far Plane: <span id='far-value'>50000</span></label>
-        <input type='range' id='far-plane' min='1000' max='100000' step='1000' value='50000' style='width:100%;'>
+      <div style='margin-bottom:10px;border-top:1px solid #475569;padding-top:10px;'>
+        <div style='font-weight:600;color:#fbbf24;margin-bottom:6px;'>🏗️ Category Visibility</div>
+        <div style='display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;'>
+          <button id='toggle-walls-btn' data-category='IFCWALL' style='background:#8b5cf6;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>🧱 Walls</button>
+          <button id='toggle-roofs-btn' data-category='IFCROOF' style='background:#f59e0b;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>🏠 Roofs</button>
+          <button id='toggle-slabs-btn' data-category='IFCSLAB' style='background:#6b7280;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>🟫 Slabs</button>
+          <button id='toggle-doors-btn' data-category='IFCDOOR' style='background:#dc2626;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>🚪 Doors</button>
+          <button id='toggle-windows-btn' data-category='IFCWINDOW' style='background:#0ea5e9;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>🪟 Windows</button>
+          <button id='toggle-columns-btn' data-category='IFCCOLUMN' style='background:#059669;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>🏛️ Columns</button>
+        </div>
+        <div style='display:flex;gap:4px;'>
+          <button id='show-all-btn' style='flex:1;background:#22c55e;color:#fff;border:none;padding:6px 0;border-radius:4px;cursor:pointer;font-size:0.8rem;'>👁️ Show All</button>
+          <button id='hide-all-btn' style='flex:1;background:#ef4444;color:#fff;border:none;padding:6px 0;border-radius:4px;cursor:pointer;font-size:0.8rem;'>🙈 Hide All</button>
+        </div>
       </div>
       
-      <div style='margin-bottom:10px;'>
-        <label>Close Distance: <span id='close-value'>5.0</span>x</label>
-        <input type='range' id='close-distance' min='1' max='20' step='0.5' value='5.0' style='width:100%;'>
+      <div style='margin-bottom:10px;border-top:1px solid #475569;padding-top:10px;'>
+        <div style='font-weight:600;color:#34d399;margin-bottom:6px;'>📹 Camera Presets</div>
+        <div style='display:grid;grid-template-columns:1fr 1fr;gap:4px;'>
+          <button id='view-top-btn' style='background:#6366f1;color:#fff;border:none;padding:5px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>🔝 Top</button>
+          <button id='view-front-btn' style='background:#6366f1;color:#fff;border:none;padding:5px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>➡️ Front</button>
+          <button id='view-side-btn' style='background:#6366f1;color:#fff;border:none;padding:5px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>↗️ Side</button>
+          <button id='view-iso-btn' style='background:#6366f1;color:#fff;border:none;padding:5px 6px;border-radius:4px;cursor:pointer;font-size:0.8rem;'>🎯 Isometric</button>
+        </div>
       </div>
       
-      <div style='margin-bottom:10px;'>
-        <label>Far Distance: <span id='far-value'>8.0</span>x</label>
-        <input type='range' id='far-distance' min='1' max='30' step='0.5' value='8.0' style='width:100%;'>
-      </div>
-      
-      <div style='margin-bottom:10px;'>
-        <label>Min Distance: <span id='min-distance-value'>200</span></label>
-        <input type='range' id='min-distance' min='50' max='1000' step='50' value='200' style='width:100%;'>
-      </div>
-      
-      <div style='display:flex;gap:4px;margin-top:8px;'>
-        <button id='reset-camera-btn' style='flex:1;background:#ef4444;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Reset</button>
-        <button id='apply-camera-btn' style='flex:1;background:#10b981;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;'>Apply & Refit</button>
+      <div style='border-top:1px solid #475569;padding-top:8px;'>
+        <div style='font-weight:600;color:#f87171;margin-bottom:6px;'>⚙️ Advanced</div>
+        <button id='reset-view-btn' style='width:100%;background:#ef4444;color:#fff;border:none;padding:6px 0;border-radius:5px;cursor:pointer;font-size:0.85rem;'>🔄 Reset View</button>
       </div>
     `;
-    document.body.appendChild(cameraPanel);
+    document.body.appendChild(viewControlsPanel);
     
     setTimeout(() => {
       const loading = document.getElementById("loading");
@@ -353,17 +312,23 @@ class SimpleUI {
     this.propertiesPanel.id = 'properties-panel';
     this.propertiesPanel.style.cssText = `
       position: fixed;
-      top: 560px;
-      right: 40px;
-      width: 270px;
-      background: rgba(24,32,48,0.98);
-      border-radius: 10px;
-      box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
-      padding: 16px 14px 10px 14px;
+      bottom: 80px;
+      left: 20px;
+      width: 420px;
+      height: 35vh;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid #3b82f6;
+      border-radius: 12px;
+      padding: 20px;
       color: #f3f4f6;
-      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-      font-size: 1rem;
-      z-index: 1002;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.9rem;
+      z-index: 1000;
+      backdrop-filter: blur(12px);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #64748b #1e293b;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     `;
     // Dropdown
     this.propertiesDropdown = document.createElement('select');
@@ -508,26 +473,6 @@ class FragmentViewer {
     veryLargeModelThreshold: 1000, // Default: 1000 - When to apply 4x scaling
   };
 
-  // Show all elements in all loaded models
-  private async showAllFragments() {
-    for (const { model } of this.loadedModels) {
-      if (model && model.setVisible) {
-        await model.setVisible(undefined, true); // undefined = all
-      }
-    }
-    this.fragments.update(true);
-  }
-
-  // Hide all elements in all loaded models
-  private async hideAllFragments() {
-    for (const { model } of this.loadedModels) {
-      if (model && model.setVisible) {
-        await model.setVisible(undefined, false);
-      }
-    }
-    this.fragments.update(true);
-  }
-
   // Fit camera to all loaded models (tight or wide)
   private fitCameraToModels(wide: boolean = false) {
     if (this.loadedModels.length === 0) return;
@@ -635,59 +580,558 @@ class FragmentViewer {
     return { ...this.cameraSettings };
   }
 
-  // Toggle visibility by IFC category
-  private async toggleCategoryVisibility(category: string) {
-    for (const { model } of this.loadedModels) {
-      if (model && model.getItemsOfCategory && model.toggleVisible) {
-        const items = await model.getItemsOfCategory(category);
-        const localIds = (await Promise.all(items.map((item: any) => item.getLocalId()))).filter((id: any) => id !== undefined);
-        if (localIds.length > 0) {
-          await model.toggleVisible(localIds);
+  /**
+   * 🔍 Automatically fit all loaded models in the camera view using ThatOpen best practices
+   * Enhanced to handle different model scales and ensure full visibility
+   */
+  private async fitAllModelsToView() {
+    if (!this.world?.camera || this.loadedModels.length === 0) {
+      console.warn("No camera or models to fit");
+      return;
+    }
+
+    try {
+      const boxes: THREE.Box3[] = [];
+      
+      // Get bounding boxes for all loaded models
+      for (const { model } of this.loadedModels) {
+        try {
+          // Use ThatOpen's BoxManager to get the model bounds
+          if (model.boundingBoxes) {
+            const box = await model.boundingBoxes.getMergedBox(model);
+            if (box) {
+              boxes.push(box);
+            }
+          } else {
+            // Fallback: use model object bounds
+            const box = new THREE.Box3().setFromObject(model.object);
+            if (!box.isEmpty()) {
+              boxes.push(box);
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to get bounds for model:`, error);
         }
       }
+
+      if (boxes.length === 0) {
+        console.warn("No valid bounding boxes found");
+        return;
+      }
+
+      // Calculate combined bounding box
+      const combinedBox = boxes[0].clone();
+      for (let i = 1; i < boxes.length; i++) {
+        combinedBox.union(boxes[i]);
+      }
+
+      // Validate the combined bounding box
+      if (combinedBox.isEmpty()) {
+        console.warn("Combined bounding box is empty");
+        return;
+      }
+
+      // Calculate camera position to fit the model with improved logic
+      const size = combinedBox.getSize(new THREE.Vector3());
+      const center = combinedBox.getCenter(new THREE.Vector3());
+      
+      // Enhanced distance calculation with safety margins
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const camera = this.world.camera.three;
+      const fov = camera instanceof THREE.PerspectiveCamera ? camera.fov : 60;
+      
+      // Base distance calculation with additional safety margin
+      const baseFitDistance = maxDim / (2 * Math.tan((fov * Math.PI) / 360));
+      const safetyMargin = 1.5; // 50% extra distance for full visibility
+      const distance = baseFitDistance * safetyMargin;
+      
+      // Ensure camera far plane can handle the model
+      if (camera instanceof THREE.PerspectiveCamera) {
+        const requiredFarPlane = distance + maxDim;
+        if (camera.far < requiredFarPlane) {
+          camera.far = Math.max(requiredFarPlane * 1.2, this.cameraSettings.farPlane);
+          camera.updateProjectionMatrix();
+          console.log(`📷 Updated far plane to ${camera.far} for model visibility`);
+        }
+      }
+      
+      // Position camera at optimal isometric angle with improved positioning
+      const cameraPosition = center.clone();
+      const offsetMultiplier = Math.max(1.0, distance / maxDim); // Dynamic offset based on model scale
+      
+      cameraPosition.x += distance * 0.7 * offsetMultiplier;
+      cameraPosition.y += distance * 0.8 * offsetMultiplier; // Slightly higher view
+      cameraPosition.z += distance * 0.7 * offsetMultiplier;
+
+      // Use camera controls to smoothly move to the position
+      if (this.world.camera.controls?.setLookAt) {
+        await this.world.camera.controls.setLookAt(
+          cameraPosition.x, cameraPosition.y, cameraPosition.z,
+          center.x, center.y, center.z,
+          true // animate
+        );
+      }
+
+      console.log(`🎯 Fitted camera to view ${this.loadedModels.length} models`);
+      console.log(`📐 Model size: ${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`);
+      console.log(`📍 Model center: ${center.x.toFixed(1)}, ${center.y.toFixed(1)}, ${center.z.toFixed(1)}`);
+      console.log(`📷 Camera distance: ${distance.toFixed(1)} (safety margin: ${safetyMargin}x)`);
+      
+      // Update fragments to reflect new camera position
+      if (this.fragments?.update) {
+        this.fragments.update(true);
+      }
+
+    } catch (error) {
+      console.error("Failed to fit models to view:", error);
     }
-    this.fragments.update(true);
   }
+
   /**
-   * Setup picking for showing properties of clicked fragments
+   * 🔍 Toggle visibility of specific IFC categories using ThatOpen API
+   */
+  private async toggleCategoryVisibility(category: string) {
+    if (this.loadedModels.length === 0) return;
+
+    try {
+      console.log(`🔄 Toggling visibility for category: ${category}`);
+      
+      // Get the ItemsFinder component
+      const finder = this.components.get(OBC.ItemsFinder);
+      
+      // Get the Hider component for visibility control
+      const hider = this.components.get(OBC.Hider);
+      
+      // Create a unique query name for this category
+      const queryName = `${category}_visibility_query`;
+      
+      // Remove existing query if it exists
+      if (finder.list.has(queryName)) {
+        finder.list.delete(queryName);
+      }
+      
+      // Create a new query for this category using regular expression
+      // Convert IFCWALL to /WALL/ pattern for flexible matching
+      const categoryPattern = new RegExp(category.replace('IFC', ''), 'i');
+      
+      console.log(`📋 Creating query with pattern: ${categoryPattern}`);
+      
+      finder.create(queryName, [
+        {
+          categories: [categoryPattern]
+        }
+      ]);
+      
+      // Get the query results
+      const finderQuery = finder.list.get(queryName);
+      if (!finderQuery) {
+        console.warn(`⚠️ Could not create query for ${category}`);
+        return;
+      }
+      
+      const result = await finderQuery.test();
+      
+      // Count total items found across all models
+      let totalItems = 0;
+      for (const modelId in result) {
+        const itemIds = result[modelId];
+        totalItems += itemIds ? itemIds.length : 0;
+      }
+      
+      console.log(`📊 Found ${totalItems} items for category ${category}`);
+      console.log(`� Result structure:`, result);
+      
+      if (totalItems > 0) {
+        // Check current visibility state by checking if any items are currently hidden
+        const hiddenItems = await hider.get(false); // Get currently hidden items
+        
+        // Check if our category items are currently hidden
+        let categoryCurrentlyHidden = false;
+        for (const modelId in result) {
+          const categoryItemIds = result[modelId];
+          if (categoryItemIds && hiddenItems[modelId]) {
+            // Check if any of our category items are in the hidden list
+            const hiddenItemsSet = new Set(hiddenItems[modelId]);
+            categoryCurrentlyHidden = categoryItemIds.some(id => hiddenItemsSet.has(id));
+            if (categoryCurrentlyHidden) break;
+          }
+        }
+        
+        console.log(`� Category ${category} currently hidden: ${categoryCurrentlyHidden}`);
+        
+        if (categoryCurrentlyHidden) {
+          // Show the category items
+          await hider.set(true, result);
+          console.log(`�️ Showed ${totalItems} ${category} items`);
+        } else {
+          // Hide the category items
+          await hider.set(false, result);
+          console.log(`🙈 Hid ${totalItems} ${category} items`);
+        }
+        
+        // Force render update
+        this.forceRenderUpdate();
+        
+      } else {
+        console.warn(`⚠️ No items found for category: ${category}`);
+        
+        // Try fallback with alternative patterns
+        await this.toggleCategoryVisibilityFallback(category);
+      }
+      
+    } catch (error) {
+      console.error(`❌ Failed to toggle ${category} visibility with ItemsFinder:`, error);
+      
+      // Fallback to old method
+      try {
+        console.log(`🔄 Trying fallback method for ${category}...`);
+        await this.toggleCategoryVisibilityFallback(category);
+      } catch (fallbackError) {
+        console.error(`❌ Fallback also failed:`, fallbackError);
+      }
+    }
+  }
+
+  /**
+   * 🔄 Force a render update to ensure visual changes are displayed
+   */
+  private forceRenderUpdate() {
+    try {
+      // Update all loaded models to refresh geometry
+      for (const { model } of this.loadedModels) {
+        // Try different update methods that might be available
+        if (model.update) {
+          model.update();
+        }
+        if (model.refresh) {
+          model.refresh();
+        }
+        if (model.redraw) {
+          model.redraw();
+        }
+        
+        // Ensure the model object is properly updated
+        if (model.object) {
+          model.object.visible = true; // Ensure the model container is visible
+          
+          // Try to trigger geometry updates
+          if (model.object.children) {
+            model.object.children.forEach((child: any) => {
+              if (child.material) {
+                child.material.needsUpdate = true;
+              }
+              if (child.geometry) {
+                child.geometry.computeBoundingBox();
+              }
+            });
+          }
+        }
+      }
+
+      // Update fragments system with force flag
+      if (this.fragments?.update) {
+        this.fragments.update(true);
+      }
+      
+      // Update the world if it has an update method
+      if (this.world?.update) {
+        this.world.update();
+      }
+
+      // Force multiple render passes to ensure changes take effect
+      if (this.world?.renderer?.three && this.world?.scene?.three && this.world?.camera?.three) {
+        // Render multiple times to ensure changes are applied
+        for (let i = 0; i < 3; i++) {
+          this.world.renderer.three.render(this.world.scene.three, this.world.camera.three);
+        }
+        console.log("🎨 Forced render update (3x passes)");
+      }
+      
+      // Also trigger a camera control update if available
+      if (this.world?.camera?.controls?.update) {
+        this.world.camera.controls.update(0);
+      }
+      
+    } catch (error) {
+      console.warn("Failed to force render update:", error);
+    }
+  }
+
+  /**
+   * 🔄 Fallback method for category visibility using different approaches
+   */
+  private async toggleCategoryVisibilityFallback(category: string) {
+    for (const { model } of this.loadedModels) {
+      try {
+        // Try different category name variations
+        const variations = [
+          category,
+          category.toLowerCase(),
+          category.replace('IFC', ''),
+          category.replace('IFC', '').toLowerCase()
+        ];
+
+        for (const variation of variations) {
+          if (model.getItemsOfCategories) {
+            const items = await model.getItemsOfCategories([variation]);
+            const itemIds = items[variation] || [];
+            
+            if (itemIds.length > 0) {
+              if (model.setVisible) {
+                const isVisible = model.isVisible ? await model.isVisible(itemIds[0]) : true;
+                await model.setVisible(itemIds, !isVisible);
+              } else if (model.toggleVisible) {
+                await model.toggleVisible(itemIds);
+              }
+              console.log(`✅ Fallback succeeded with variation: ${variation}`);
+              
+              // Force render update for fallback as well
+              this.forceRenderUpdate();
+              return;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`Fallback variation failed:`, error);
+      }
+    }
+  }
+
+  /**
+   * 🔍 Debug function to list all available categories in loaded models
+   */
+  private async listAvailableCategories() {
+    if (this.loadedModels.length === 0) {
+      console.log("📝 No models loaded");
+      return;
+    }
+
+    console.log("📊 Available categories in loaded models:");
+    
+    for (const { model, fileName } of this.loadedModels) {
+      console.log(`\n🏗️ Model: ${fileName}`);
+      
+      try {
+        // Try to get all available categories
+        if (model.getCategories) {
+          const categories = await model.getCategories();
+          console.log(`📂 Categories found:`, categories);
+        }
+        
+        // Alternative: try common IFC categories
+        const commonCategories = [
+          'IFCWALL', 'IFCDOOR', 'IFCWINDOW', 'IFCSLAB', 'IFCROOF', 'IFCCOLUMN',
+          'IFCBEAM', 'IFCSTAIR', 'IFCRAILING', 'IFCFURNISHINGELEMENT'
+        ];
+        
+        for (const category of commonCategories) {
+          if (model.getItemsOfCategories) {
+            try {
+              const items = await model.getItemsOfCategories([category]);
+              const count = items[category]?.length || 0;
+              if (count > 0) {
+                console.log(`✅ ${category}: ${count} items`);
+              }
+            } catch (e) {
+              // Silently continue
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to get categories for ${fileName}:`, error);
+      }
+    }
+  }
+
+  /**
+   * 🔍 Show all model elements
+   */
+  private async showAllElements() {
+    console.log("🔄 Show All Elements button clicked");
+    if (this.loadedModels.length === 0) {
+      console.log("⚠️ No models loaded");
+      return;
+    }
+
+    try {
+      console.log(`📊 Processing ${this.loadedModels.length} loaded models...`);
+      for (const { model } of this.loadedModels) {
+        if (!model.getItemsByVisibility || !model.setVisible) {
+          console.log("⚠️ Model does not support visibility methods");
+          continue;
+        }
+
+        // Get all hidden items and make them visible
+        const hiddenItems = await model.getItemsByVisibility(false);
+        if (hiddenItems.length > 0) {
+          await model.setVisible(hiddenItems, true);
+          console.log(`👁️ Made ${hiddenItems.length} items visible`);
+        } else {
+          console.log(`📝 No hidden items found in this model`);
+        }
+      }
+
+      if (this.fragments?.update) {
+        this.fragments.update(true);
+      }
+
+      // Force render update to show changes
+      this.forceRenderUpdate();
+      
+    } catch (error) {
+      console.error("Failed to show all elements:", error);
+    }
+  }
+
+  /**
+   * 🔍 Hide all model elements
+   */
+  private async hideAllElements() {
+    console.log("🔄 Hide All Elements button clicked");
+    if (this.loadedModels.length === 0) {
+      console.log("⚠️ No models loaded");
+      return;
+    }
+
+    try {
+      console.log(`📊 Processing ${this.loadedModels.length} loaded models...`);
+      for (const { model } of this.loadedModels) {
+        if (!model.getItemsByVisibility || !model.setVisible) {
+          console.log("⚠️ Model does not support visibility methods");
+          continue;
+        }
+
+        // Get all visible items and hide them
+        const visibleItems = await model.getItemsByVisibility(true);
+        if (visibleItems.length > 0) {
+          await model.setVisible(visibleItems, false);
+          console.log(`🙈 Hid ${visibleItems.length} items`);
+        }
+      }
+
+      if (this.fragments?.update) {
+        this.fragments.update(true);
+      }
+
+      // Force render update to show changes
+      this.forceRenderUpdate();
+      
+    } catch (error) {
+      console.error("Failed to hide all elements:", error);
+    }
+  }
+
+  /**
+   * 🔍 Set camera to specific preset views
+   */
+  private setCameraPreset(view: 'top' | 'front' | 'side' | 'isometric') {
+    if (!this.world?.camera || this.loadedModels.length === 0) return;
+
+    try {
+      // Calculate the center of all models
+      const boxes: THREE.Box3[] = [];
+      for (const { model } of this.loadedModels) {
+        const box = new THREE.Box3().setFromObject(model.object);
+        if (!box.isEmpty()) {
+          boxes.push(box);
+        }
+      }
+
+      if (boxes.length === 0) return;
+
+      const combinedBox = boxes[0].clone();
+      for (let i = 1; i < boxes.length; i++) {
+        combinedBox.union(boxes[i]);
+      }
+
+      const center = combinedBox.getCenter(new THREE.Vector3());
+      const size = combinedBox.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const distance = maxDim * 2;
+
+      let cameraPosition = center.clone();
+
+      switch (view) {
+        case 'top':
+          cameraPosition.y += distance;
+          break;
+        case 'front':
+          cameraPosition.z += distance;
+          break;
+        case 'side':
+          cameraPosition.x += distance;
+          break;
+        case 'isometric':
+          cameraPosition.x += distance * 0.7;
+          cameraPosition.y += distance * 0.7;
+          cameraPosition.z += distance * 0.7;
+          break;
+      }
+
+      if (this.world.camera.controls?.setLookAt) {
+        this.world.camera.controls.setLookAt(
+          cameraPosition.x, cameraPosition.y, cameraPosition.z,
+          center.x, center.y, center.z,
+          true
+        );
+      }
+
+      console.log(`📹 Set camera to ${view} view`);
+    } catch (error) {
+      console.error(`Failed to set ${view} view:`, error);
+    }
+  }
+
+  /**
+   * Setup picking for showing properties of clicked fragments using ThatOpen API
    */
   private setupPicking() {
     const container = document.getElementById("container");
     if (!container) return;
-    container.addEventListener("pointerdown", async (event) => {
+    
+    container.addEventListener("click", async (event) => {
       if (!this.fragments || this.loadedModels.length === 0) return;
-      // Get mouse position normalized to [-1, 1]
-      const rect = container.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      const mouse = new THREE.Vector2(x, y);
-      // Raycast
-      const camera = this.world.camera.three;
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, camera);
-      // Check all loaded models
+      
+      // Use ThatOpen's proper raycast API
+      const mouse = new THREE.Vector2();
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+      
+      // Try raycasting on each model using ThatOpen's built-in raycast method
       for (const { model, fileName } of this.loadedModels) {
-        if (!model.object) continue;
-        const intersects = raycaster.intersectObject(model.object, true);
-        if (intersects.length > 0) {
-          // Try to get fragment/component ID from intersection
-          const intersect = intersects[0];
-          // ThatOpen Fragments store fragmentId on mesh.userData.fragmentId
-          let fragmentId = null;
-          if (intersect.object && intersect.object.userData && intersect.object.userData.fragmentId !== undefined) {
-            fragmentId = intersect.object.userData.fragmentId;
+        if (!model.raycast) continue;
+        
+        try {
+          if (!this.world.renderer || !this.world.renderer.three || !this.world.renderer.three.domElement) {
+            console.warn("Renderer or DOM element not available for raycast");
+            continue;
           }
-          // If fragmentId found, get properties using proper ThatOpen methods
-          if (fragmentId !== null) {
-            await this.displayComponentProperties(model, fragmentId, fileName);
+          
+          const result = await model.raycast({
+            camera: this.world.camera.three,
+            mouse: mouse,
+            dom: this.world.renderer.three.domElement
+          });
+          
+          if (result && result.localId !== undefined) {
+            await this.displayComponentProperties(model, result.localId, fileName);
             return;
           }
+        } catch (error) {
+          console.log(`Raycast failed for ${fileName}:`, error);
+          // Try alternative method if raycast fails
+          continue;
         }
       }
       
       // If no component clicked, clear properties display
       if (this.ui.propertiesContent) {
-        this.ui.propertiesContent.innerHTML = `<div style="color:#94a3b8;font-style:italic;">Click on a component to view properties</div>`;
+        this.ui.propertiesContent.innerHTML = `
+          <div style="color:#94a3b8;font-style:italic;text-align:center;padding:20px;">
+            🎯 Click on a BIM component to view properties
+            <br><small style="margin-top:8px;display:block;">Make sure your model is loaded and visible</small>
+          </div>
+        `;
       }
     });
   }
@@ -695,46 +1139,10 @@ class FragmentViewer {
   /**
    * Display comprehensive component properties using ThatOpen best practices
    */
-  private async displayComponentProperties(model: any, fragmentId: string, fileName: string) {
+  private async displayComponentProperties(model: any, localId: number, fileName: string) {
     if (!this.ui.propertiesContent) return;
 
     try {
-      // Get basic fragment info
-      let properties: any = {};
-      let ifcElement: any = null;
-      let expressID: number | null = null;
-
-      // Try multiple methods to get properties
-      if (model.getProperties) {
-        try {
-          properties = await model.getProperties(fragmentId);
-        } catch (err) {
-          console.log("getProperties failed, trying alternative methods");
-        }
-      }
-
-      // Try to get the actual IFC element using ThatOpen methods
-      if (model.getElementByFragmentId) {
-        try {
-          ifcElement = await model.getElementByFragmentId(fragmentId);
-          if (ifcElement && ifcElement.expressID) {
-            expressID = ifcElement.expressID;
-          }
-        } catch (err) {
-          console.log("getElementByFragmentId failed");
-        }
-      }
-
-      // Try alternative method to get element by ID
-      if (!ifcElement && model.getElementByID && expressID) {
-        try {
-          ifcElement = await model.getElementByID(expressID);
-        } catch (err) {
-          console.log("getElementByID failed");
-        }
-      }
-
-      // Build comprehensive properties display
       let html = `
         <div style='font-weight:600;color:#60a5fa;margin-bottom:8px;padding:8px;background:rgba(59,130,246,0.1);border-radius:6px;'>
           🏗️ Component Details
@@ -746,59 +1154,85 @@ class FragmentViewer {
         <div style='background:rgba(30,41,59,0.5);padding:8px;border-radius:6px;margin-bottom:8px;'>
           <div style='font-weight:600;color:#7dd3fc;margin-bottom:4px;'>📦 Fragment Info</div>
           <table style="width:100%;font-size:0.9rem;">
-            <tr><td style='color:#94a3b8;padding:2px 4px;'>Fragment ID:</td><td style='color:#f3f4f6;padding:2px 4px;'>${fragmentId}</td></tr>
+            <tr><td style='color:#94a3b8;padding:2px 4px;'>Local ID:</td><td style='color:#f3f4f6;padding:2px 4px;'>${localId}</td></tr>
             <tr><td style='color:#94a3b8;padding:2px 4px;'>Model:</td><td style='color:#f3f4f6;padding:2px 4px;'>${fileName}</td></tr>
-            ${expressID ? `<tr><td style='color:#94a3b8;padding:2px 4px;'>Express ID:</td><td style='color:#f3f4f6;padding:2px 4px;'>${expressID}</td></tr>` : ''}
           </table>
         </div>
       `;
 
+      // Get component data using proper ThatOpen API
+      let componentData: any = null;
+      if (model.getItemsData) {
+        try {
+          const itemsData = await model.getItemsData([localId]);
+          if (itemsData && itemsData.length > 0) {
+            componentData = itemsData[0];
+          }
+        } catch (error) {
+          console.warn("getItemsData failed:", error);
+        }
+      }
+
+      // Alternative method: try getProperties if getItemsData not available
+      if (!componentData && model.getProperties) {
+        try {
+          componentData = await model.getProperties(localId);
+        } catch (error) {
+          console.warn("getProperties failed:", error);
+        }
+      }
+
       // IFC Properties Section
-      if (ifcElement) {
+      if (componentData) {
         html += `
           <div style='background:rgba(16,185,129,0.1);padding:8px;border-radius:6px;margin-bottom:8px;'>
             <div style='font-weight:600;color:#10b981;margin-bottom:4px;'>🏛️ IFC Properties</div>
             <table style="width:100%;font-size:0.9rem;">
         `;
 
-        // Essential IFC properties
-        const essentialProps = ['GlobalId', 'Name', 'type', 'IfcType', 'Description', 'Tag', 'ObjectType'];
-        for (const prop of essentialProps) {
-          if (ifcElement[prop] !== undefined && ifcElement[prop] !== null && ifcElement[prop] !== '') {
-            const value = typeof ifcElement[prop] === 'object' ? JSON.stringify(ifcElement[prop]) : String(ifcElement[prop]);
-            html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>${prop}:</td><td style='color:#f3f4f6;padding:2px 4px;'>${value}</td></tr>`;
-          }
+        // Display all available properties from the component data
+        const propertiesToShow = Object.keys(componentData).filter(key => 
+          componentData[key] !== undefined && 
+          componentData[key] !== null && 
+          componentData[key] !== '' &&
+          typeof componentData[key] !== 'function'
+        );
+
+        if (propertiesToShow.length > 0) {
+          propertiesToShow.forEach(key => {
+            let value = componentData[key];
+            
+            // Handle different value types
+            if (typeof value === 'object') {
+              // For objects, try to extract meaningful information
+              if (value.value !== undefined) {
+                value = value.value;
+              } else if (Array.isArray(value)) {
+                value = value.join(', ');
+              } else {
+                value = JSON.stringify(value, null, 2);
+              }
+            }
+
+            // Limit very long values
+            const displayValue = String(value).length > 100 
+              ? String(value).substring(0, 100) + '...' 
+              : String(value);
+
+            html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>${key}:</td><td style='color:#f3f4f6;padding:2px 4px;'>${displayValue}</td></tr>`;
+          });
+        } else {
+          html += `<tr><td colspan="2" style='color:#94a3b8;padding:8px;text-align:center;font-style:italic;'>No properties available</td></tr>`;
         }
 
         html += `</table></div>`;
-      }
-
-      // Additional Properties Section
-      if (properties && Object.keys(properties).length > 0) {
-        html += `
-          <div style='background:rgba(168,85,247,0.1);padding:8px;border-radius:6px;margin-bottom:8px;'>
-            <div style='font-weight:600;color:#a855f7;margin-bottom:4px;'>⚙️ Additional Properties</div>
-            <table style="width:100%;font-size:0.9rem;">
-        `;
-
-        // Filter out already displayed properties
-        const displayedProps = ['GlobalId', 'Name', 'type', 'IfcType', 'Description', 'Tag', 'ObjectType'];
-        for (const key in properties) {
-          if (!displayedProps.includes(key) && properties[key] !== undefined && properties[key] !== null && properties[key] !== '') {
-            const value = typeof properties[key] === 'object' ? JSON.stringify(properties[key]) : String(properties[key]);
-            html += `<tr><td style='color:#94a3b8;padding:2px 4px;'>${key}:</td><td style='color:#f3f4f6;padding:2px 4px;'>${value}</td></tr>`;
-          }
-        }
-
-        html += `</table></div>`;
-      }
-
-      // If no properties found at all
-      if (!ifcElement && (!properties || Object.keys(properties).length === 0)) {
+      } else {
+        // If no component data found
         html += `
           <div style='background:rgba(239,68,68,0.1);padding:8px;border-radius:6px;color:#f87171;text-align:center;'>
             ⚠️ No properties available for this component
-            <br><small style='color:#94a3b8;'>Fragment ID: ${fragmentId}</small>
+            <br><small style='color:#94a3b8;'>Local ID: ${localId}</small>
+            <br><small style='color:#94a3b8;'>Try clicking on a different component</small>
           </div>
         `;
       }
@@ -817,11 +1251,13 @@ class FragmentViewer {
 
     } catch (error) {
       console.error("Error displaying component properties:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       if (this.ui.propertiesContent) {
         this.ui.propertiesContent.innerHTML = `
           <div style='color:#f87171;text-align:center;padding:8px;'>
             ❌ Error loading properties
             <br><small style='color:#94a3b8;'>Check console for details</small>
+            <br><small style='color:#94a3b8;'>Error: ${errorMessage}</small>
           </div>
         `;
       }
@@ -844,7 +1280,7 @@ class FragmentViewer {
       await this.setupFragments();
       this.setupFileHandling();
       this.setupPicking();
-      this.setupVisibilityTools();
+      this.setupViewControlsListeners();
       console.log("✅ Fragment viewer ready");
       this.ui.updateStatus("✅ Ready - Drop .frag files to view them");
     } catch (error) {
@@ -853,112 +1289,64 @@ class FragmentViewer {
     }
   }
 
-  // Setup event listeners for the visibility/camera tools panel
-  private setupVisibilityTools() {
+  /**
+   * 🔍 Setup event listeners for view controls panel
+   */
+  private setupViewControlsListeners() {
+    // Fit all models to view
+    const fitViewBtn = document.getElementById('fit-view-btn');
+    fitViewBtn?.addEventListener('click', () => {
+      this.fitAllModelsToView();
+    });
+
+    // Category visibility toggles
+    const categoryButtons = [
+      { id: 'toggle-walls-btn', category: 'IFCWALL' },
+      { id: 'toggle-roofs-btn', category: 'IFCROOF' },
+      { id: 'toggle-slabs-btn', category: 'IFCSLAB' },
+      { id: 'toggle-doors-btn', category: 'IFCDOOR' },
+      { id: 'toggle-windows-btn', category: 'IFCWINDOW' },
+      { id: 'toggle-columns-btn', category: 'IFCCOLUMN' }
+    ];
+
+    categoryButtons.forEach(({ id, category }) => {
+      const btn = document.getElementById(id);
+      btn?.addEventListener('click', () => {
+        this.toggleCategoryVisibility(category);
+      });
+    });
+
+    // Show/Hide all buttons
     const showAllBtn = document.getElementById('show-all-btn');
     const hideAllBtn = document.getElementById('hide-all-btn');
-    const fitTightBtn = document.getElementById('fit-tight-btn');
-    const fitWideBtn = document.getElementById('fit-wide-btn');
-    const categoryDropdown = document.getElementById('category-dropdown') as HTMLSelectElement;
-    const toggleCategoryBtn = document.getElementById('toggle-category-btn');
-    if (showAllBtn) showAllBtn.addEventListener('click', () => this.showAllFragments());
-    if (hideAllBtn) hideAllBtn.addEventListener('click', () => this.hideAllFragments());
-    if (fitTightBtn) fitTightBtn.addEventListener('click', () => this.fitCameraToModels(false));
-    if (fitWideBtn) fitWideBtn.addEventListener('click', () => this.fitCameraToModels(true));
-    if (toggleCategoryBtn && categoryDropdown) {
-      toggleCategoryBtn.addEventListener('click', () => {
-        const category = categoryDropdown.value;
-        if (category) this.toggleCategoryVisibility(category);
+    
+    showAllBtn?.addEventListener('click', () => {
+      this.showAllElements();
+    });
+    
+    hideAllBtn?.addEventListener('click', () => {
+      this.hideAllElements();
+    });
+
+    // Camera preset views
+    const viewButtons = [
+      { id: 'view-top-btn', view: 'top' as const },
+      { id: 'view-front-btn', view: 'front' as const },
+      { id: 'view-side-btn', view: 'side' as const },
+      { id: 'view-iso-btn', view: 'isometric' as const }
+    ];
+
+    viewButtons.forEach(({ id, view }) => {
+      const btn = document.getElementById(id);
+      btn?.addEventListener('click', () => {
+        this.setCameraPreset(view);
       });
-    }
-
-    // 🎛️ Setup Camera Settings Panel Event Listeners
-    this.setupCameraSettingsListeners();
-  }
-
-  /**
-   * 🎛️ Setup event listeners for camera settings panel
-   */
-  private setupCameraSettingsListeners() {
-    // Get all camera setting elements
-    const nearPlane = document.getElementById('near-plane') as HTMLInputElement;
-    const farPlane = document.getElementById('far-plane') as HTMLInputElement;
-    const closeDistance = document.getElementById('close-distance') as HTMLInputElement;
-    const farDistance = document.getElementById('far-distance') as HTMLInputElement;
-    const minDistance = document.getElementById('min-distance') as HTMLInputElement;
-    const resetBtn = document.getElementById('reset-camera-btn');
-    const applyBtn = document.getElementById('apply-camera-btn');
-
-    // Update display values in real-time
-    nearPlane?.addEventListener('input', (e) => {
-      const value = (e.target as HTMLInputElement).value;
-      const display = document.getElementById('near-value');
-      if (display) display.textContent = value;
     });
 
-    farPlane?.addEventListener('input', (e) => {
-      const value = (e.target as HTMLInputElement).value;
-      const display = document.getElementById('far-value');
-      if (display) display.textContent = value;
-    });
-
-    closeDistance?.addEventListener('input', (e) => {
-      const value = (e.target as HTMLInputElement).value;
-      const display = document.getElementById('close-value');
-      if (display) display.textContent = value;
-    });
-
-    farDistance?.addEventListener('input', (e) => {
-      const value = (e.target as HTMLInputElement).value;
-      const display = document.getElementById('far-value');
-      if (display) display.textContent = value;
-    });
-
-    minDistance?.addEventListener('input', (e) => {
-      const value = (e.target as HTMLInputElement).value;
-      const display = document.getElementById('min-distance-value');
-      if (display) display.textContent = value;
-    });
-
-    // Reset to defaults
-    resetBtn?.addEventListener('click', () => {
-      const defaults = {
-        nearPlane: 0.1,
-        farPlane: 50000,
-        closeFitMultiplier: 5.0,
-        farFitMultiplier: 8.0,
-        minimumDistance: 200
-      };
-      
-      if (nearPlane) nearPlane.value = defaults.nearPlane.toString();
-      if (farPlane) farPlane.value = defaults.farPlane.toString();
-      if (closeDistance) closeDistance.value = defaults.closeFitMultiplier.toString();
-      if (farDistance) farDistance.value = defaults.farFitMultiplier.toString();
-      if (minDistance) minDistance.value = defaults.minimumDistance.toString();
-      
-      // Update displays
-      document.getElementById('near-value')!.textContent = defaults.nearPlane.toString();
-      document.getElementById('far-value')!.textContent = defaults.farPlane.toString();
-      document.getElementById('close-value')!.textContent = defaults.closeFitMultiplier.toString();
-      document.getElementById('far-value')!.textContent = defaults.farFitMultiplier.toString();
-      document.getElementById('min-distance-value')!.textContent = defaults.minimumDistance.toString();
-      
-      // Apply the defaults
-      this.updateCameraSettings(defaults);
-    });
-
-    // Apply current settings and refit camera
-    applyBtn?.addEventListener('click', () => {
-      const newSettings = {
-        nearPlane: parseFloat(nearPlane?.value || '0.1'),
-        farPlane: parseFloat(farPlane?.value || '50000'),
-        closeFitMultiplier: parseFloat(closeDistance?.value || '5.0'),
-        farFitMultiplier: parseFloat(farDistance?.value || '8.0'),
-        minimumDistance: parseFloat(minDistance?.value || '200')
-      };
-      
-      this.updateCameraSettings(newSettings);
-      console.log('🎛️ Applied new camera settings:', newSettings);
+    // Reset view button
+    const resetViewBtn = document.getElementById('reset-view-btn');
+    resetViewBtn?.addEventListener('click', () => {
+      this.fitAllModelsToView();
     });
   }
 
@@ -1185,7 +1573,6 @@ class FragmentViewer {
     const ifcInput = document.getElementById("ifc-input") as HTMLInputElement;
     const ifcBrowseBtn = document.getElementById("ifc-browse-btn");
     const conversionStatus = document.getElementById("conversion-status");
-    const conversionProgress = document.getElementById("conversion-progress");
 
     if (ifcInput && ifcBrowseBtn && conversionStatus) {
       // IFC file input change handler
@@ -1241,10 +1628,16 @@ class FragmentViewer {
       // Add to loadedModels for UI management
       this.loadedModels.push({ model, fileName: file.name });
 
-      // Frame the model in view after a short delay
+      // Debug: List available categories for this model
       setTimeout(() => {
-        this.frameAllModels();
-      }, 100);
+        this.listAvailableCategories();
+      }, 200);
+
+      // Wait for model to be fully processed and geometry to be available
+      await this.waitForModelReady(model);
+      
+      // Fit camera to view with proper timing
+      await this.fitAllModelsToView();
 
       // Update UI
       this.ui.updateStatus(`✅ Loaded ${file.name} (${this.loadedModels.length} total)`);
@@ -1272,6 +1665,75 @@ class FragmentViewer {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.ui.updateStatus(`❌ Failed to load ${file.name}: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Wait for model to be fully ready with geometry available for proper bounding box calculation
+   */
+  private async waitForModelReady(model: any, maxWaitTime: number = 5000): Promise<void> {
+    const startTime = Date.now();
+    const checkInterval = 50; // Check every 50ms
+    
+    return new Promise((resolve, reject) => {
+      const checkReady = () => {
+        const elapsedTime = Date.now() - startTime;
+        
+        // Check if we've exceeded max wait time
+        if (elapsedTime > maxWaitTime) {
+          console.warn(`⏰ Model readiness check timed out after ${maxWaitTime}ms, proceeding anyway`);
+          resolve();
+          return;
+        }
+        
+        // Check if model has geometry available
+        let hasGeometry = false;
+        try {
+          if (model.object && model.object.children && model.object.children.length > 0) {
+            // Check if any child has geometry
+            const hasValidGeometry = model.object.children.some((child: any) => {
+              return child.geometry && 
+                     child.geometry.attributes && 
+                     child.geometry.attributes.position &&
+                     child.geometry.attributes.position.count > 0;
+            });
+            
+            if (hasValidGeometry) {
+              hasGeometry = true;
+            }
+          }
+          
+          // Alternative check for bounding boxes
+          if (!hasGeometry && model.boundingBoxes) {
+            // Try to get a bounding box to verify geometry is processed
+            model.boundingBoxes.getMergedBox(model).then((box: any) => {
+              if (box && !box.isEmpty()) {
+                hasGeometry = true;
+                console.log(`✅ Model geometry ready after ${elapsedTime}ms`);
+                resolve();
+                return;
+              }
+            }).catch(() => {
+              // Continue checking
+            });
+          }
+          
+          if (hasGeometry) {
+            console.log(`✅ Model geometry ready after ${elapsedTime}ms`);
+            resolve();
+            return;
+          }
+          
+        } catch (error) {
+          console.warn("Error checking model readiness:", error);
+        }
+        
+        // Continue checking
+        setTimeout(checkReady, checkInterval);
+      };
+      
+      // Start checking
+      checkReady();
+    });
   }
 
   /**
@@ -1443,7 +1905,7 @@ class FragmentViewer {
     this.ui.updateStatus(`Removed model (${this.loadedModels.length} remaining)`);
     this.ui.updatePropertiesDropdown(this.loadedModels);
     if (this.loadedModels.length > 0) {
-      this.frameAllModels();
+      this.fitAllModelsToView();
     }
   }
 
@@ -1559,56 +2021,9 @@ class FragmentViewer {
     }
   }
 
-  /**
-   * Frame all models in the camera view
-   */
-  private frameAllModels() {
-    if (this.loadedModels.length === 0) return;
-    try {
-      // Compute a combined bounding box for all loaded fragment models
-      const combinedBox = new THREE.Box3();
-      let hasBox = false;
-      this.loadedModels.forEach(({ model }) => {
-        if (model && model.object && model.object instanceof THREE.Object3D) {
-          const box = new THREE.Box3().setFromObject(model.object);
-          if (!box.isEmpty()) {
-            combinedBox.union(box);
-            hasBox = true;
-          }
-        }
-      });
-      if (!hasBox) return;
-      const center = combinedBox.getCenter(new THREE.Vector3());
-      const size = combinedBox.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const distance = Math.max(maxDim * 2, 50);
-      const cameraPosition = new THREE.Vector3(
-        center.x + distance,
-        center.y + distance * 0.7,
-        center.z + distance
-      );
-      if (this.world.camera.controls) {
-        this.world.camera.controls.setLookAt(
-          cameraPosition.x,
-          cameraPosition.y,
-          cameraPosition.z,
-          center.x,
-          center.y,
-          center.z
-        );
-      } else {
-        this.world.camera.three.position.copy(cameraPosition);
-        this.world.camera.three.lookAt(center);
-      }
-      this.world.renderer?.three.render(this.world.scene.three, this.world.camera.three);
-    } catch (error) {
-      console.error("❌ Failed to frame models:", error);
-    }
-  }
 }
 
 // Initialize when DOM is ready
-
 document.addEventListener("DOMContentLoaded", () => {
   document.title = "IFC File Conversion - Load Test";
   new FragmentViewer();
