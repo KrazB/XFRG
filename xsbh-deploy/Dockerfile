@@ -20,11 +20,11 @@ COPY backend/package.json backend/requirements.txt ./backend/
 
 # Install frontend dependencies
 WORKDIR /app/frontend
-RUN npm ci
+RUN npm install
 
 # Install backend dependencies
 WORKDIR /app/backend
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Copy source code
 WORKDIR /app
@@ -78,7 +78,7 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
 
 # Install Python dependencies in production
 WORKDIR /app/backend
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Set environment variables
 ENV PYTHONPATH=/app/backend

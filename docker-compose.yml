@@ -1,123 +1,26 @@
-version: '3.8'
-
-services:
-  # Backend Service - IFC Processing and Conversion
-  backend:
-    build:
-      context: .
-      target: backend-builder
-    container_name: qgen-impfrag-backend
-    ports:
-      - "${QGEN_BACKEND_PORT:-8111}:8111"
-    volumes:
-      - ./data:/app/data
-      - ./backend/logs:/app/logs
-      - ifc_data:/app/data/ifc
-      - fragments_data:/app/data/fragments
-    environment:
-      - PYTHONPATH=/app/backend
-      - FRAGMENTS_OUTPUT_DIR=/app/data/fragments
-      - IFC_INPUT_DIR=/app/data/ifc
-      - LOG_LEVEL=INFO
-      - QGEN_BACKEND_PORT=${QGEN_BACKEND_PORT:-8111}
-      - QGEN_FRONTEND_PORT=${QGEN_FRONTEND_PORT:-3111}
-    networks:
-      - qgen-network
-    healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8111/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
-  # Frontend Service - 3D Viewer
-  frontend:
-    build:
-      context: .
-      target: frontend-builder
-    container_name: qgen-impfrag-frontend
-    ports:
-      - "${QGEN_FRONTEND_PORT:-3111}:3111"
-    volumes:
-      - fragments_data:/app/data/fragments:ro
-    environment:
-      - NODE_ENV=production
-      - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8111}
-      - VITE_FRAGMENTS_PATH=/app/data/fragments
-      - QGEN_FRONTEND_PORT=${QGEN_FRONTEND_PORT:-3111}
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - qgen-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3111/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Production Service - Complete Application
-  app:
-    build:
-      context: .
-      target: production
-    container_name: qgen-impfrag-app
-    ports:
-      - "${QGEN_FRONTEND_PORT:-3111}:80"
-      - "${QGEN_BACKEND_PORT:-8111}:8111"
-    volumes:
-      - ./data:/app/data
-      - app_logs:/app/logs
-    environment:
-      - PYTHONPATH=/app/backend
-      - NODE_ENV=production
-      - FRAGMENTS_DATA_DIR=/app/data
-      - LOG_LEVEL=INFO
-      - QGEN_BACKEND_PORT=${QGEN_BACKEND_PORT:-8111}
-      - QGEN_FRONTEND_PORT=${QGEN_FRONTEND_PORT:-3111}
-    networks:
-      - qgen-network
-    profiles:
-      - production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 90s
-
-  # Development Database (Optional)
-  db:
-    image: postgres:15-alpine
-    container_name: qgen-impfrag-db
-    environment:
-      - POSTGRES_DB=qgen_impfrag
-      - POSTGRES_USER=qgen
-      - POSTGRES_PASSWORD=qgen_dev_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - qgen-network
-    profiles:
-      - database
-
-# Named volumes for data persistence
-volumes:
-  ifc_data:
-    driver: local
-  fragments_data:
-    driver: local
-  app_logs:
-    driver: local
-  postgres_data:
-    driver: local
-
-# Network configuration
-networks:
-  qgen-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
+# XSBH - Simple BIM Fragment Viewer 
+version: '3.8' 
+ 
+services: 
+  xsbh-viewer: 
+    build: . 
+    container_name: xsbh-bim-viewer 
+    ports: 
+      - "8080:80" 
+    volumes: 
+      - ./data:/app/data 
+      - ./user-fragments:/app/data/fragments 
+    environment: 
+      - NODE_ENV=production 
+      - FRAGMENTS_DATA_DIR=/app/data 
+    restart: unless-stopped 
+    healthcheck: 
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"] 
+      interval: 30s 
+      timeout: 10s 
+      retries: 3 
+      start_period: 60s 
+ 
+volumes: 
+  user-fragments: 
+    driver: local 

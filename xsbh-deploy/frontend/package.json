@@ -17,9 +17,9 @@
     "@thatopen/fragments": "^3.0.7",
     "@thatopen/ui": "^2.4.4",
     "@thatopen/ui-obc": "^2.4.4",
-    "three": "^0.175.0",
     "axios": "^1.6.2",
-    "lit": "^3.1.0"
+    "lit": "^3.1.0",
+    "three": "^0.175.0"
   },
   "devDependencies": {
     "@types/three": "^0.175.0",
